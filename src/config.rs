@@ -12,7 +12,7 @@ const DEFAULT_CONFIG: &str = concat!(
     "repo = \"\"\n",
 );
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AppConfig {
     pub json_auto_push: JsonAutoPushConfig,
 }
@@ -75,14 +75,6 @@ impl AppConfig {
         Ok(AppConfig {
             json_auto_push: JsonAutoPushConfig { repo },
         })
-    }
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            json_auto_push: JsonAutoPushConfig::default(),
-        }
     }
 }
 

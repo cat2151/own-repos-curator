@@ -29,6 +29,17 @@ use ratatui::{
     widgets::{Block, List, ListItem, Paragraph},
 };
 
+#[derive(Clone, Copy)]
+struct RepoItemDisplay<'a> {
+    repo_name: &'a str,
+    group_name: &'a str,
+    registered_groups: &'a [String],
+    desc_short: &'a str,
+    desc_long: &'a str,
+    display_tags: &'a [String],
+    registered_tags: &'a [String],
+}
+
 pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     let area = f.area();
     f.render_widget(Block::default().style(theme::screen()), area);
@@ -74,13 +85,15 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
             let display_group = app.display_group_for_repo_index(*index);
             let display_tags = app.display_tags_for_repo_index(*index);
             Some(repo_item_lines(
-                repo.name.as_str(),
-                display_group.as_str(),
-                &registered_groups,
-                repo.desc_short.as_str(),
-                repo.desc_long.as_str(),
-                &display_tags,
-                &registered_tags,
+                RepoItemDisplay {
+                    repo_name: repo.name.as_str(),
+                    group_name: display_group.as_str(),
+                    registered_groups: &registered_groups,
+                    desc_short: repo.desc_short.as_str(),
+                    desc_long: repo.desc_long.as_str(),
+                    display_tags: &display_tags,
+                    registered_tags: &registered_tags,
+                },
                 desc_display_mode,
             ))
         })
@@ -238,24 +251,18 @@ fn repo_line(
 }
 
 fn repo_item_lines(
-    repo_name: &str,
-    group_name: &str,
-    registered_groups: &[String],
-    desc_short: &str,
-    desc_long: &str,
-    display_tags: &[String],
-    registered_tags: &[String],
+    repo: RepoItemDisplay<'_>,
     desc_display_mode: DescDisplayMode,
 ) -> Vec<Line<'static>> {
     let mut lines = vec![repo_line(
-        repo_name,
-        group_name,
-        registered_groups,
-        display_tags,
-        registered_tags,
+        repo.repo_name,
+        repo.group_name,
+        repo.registered_groups,
+        repo.display_tags,
+        repo.registered_tags,
     )];
 
-    let desc_short = desc_short.trim();
+    let desc_short = repo.desc_short.trim();
     if desc_display_mode.shows_inline_short_desc() && !desc_short.is_empty() {
         lines.push(Line::from(vec![
             Span::styled("  ".to_string(), theme::muted()),
@@ -263,7 +270,7 @@ fn repo_item_lines(
         ]));
     }
 
-    let desc_long = desc_long.trim();
+    let desc_long = repo.desc_long.trim();
     if desc_display_mode.shows_inline_long_desc() && !desc_long.is_empty() {
         lines.extend(desc_long.lines().map(|line| {
             Line::from(vec![
@@ -278,7 +285,7 @@ fn repo_item_lines(
 
 #[cfg(test)]
 mod tests {
-    use super::{group_colors, repo_item_lines, repo_line, tag_colors, theme};
+    use super::{group_colors, repo_item_lines, repo_line, tag_colors, theme, RepoItemDisplay};
     use crate::{app::DescDisplayMode, model::DEFAULT_GROUP_NAME};
 
     #[test]
@@ -355,13 +362,15 @@ mod tests {
     fn repo_item_lines_include_indented_short_desc_when_inline_mode_is_enabled() {
         let registered_groups = vec!["tools".to_string()];
         let lines = repo_item_lines(
-            "repo",
-            "tools",
-            &registered_groups,
-            "short desc",
-            "",
-            &[],
-            &[],
+            RepoItemDisplay {
+                repo_name: "repo",
+                group_name: "tools",
+                registered_groups: &registered_groups,
+                desc_short: "short desc",
+                desc_long: "",
+                display_tags: &[],
+                registered_tags: &[],
+            },
             DescDisplayMode::LeftShort,
         );
 
@@ -374,13 +383,15 @@ mod tests {
     fn repo_item_lines_omit_short_desc_when_inline_mode_is_disabled() {
         let registered_groups = vec!["tools".to_string()];
         let lines = repo_item_lines(
-            "repo",
-            "tools",
-            &registered_groups,
-            "short desc",
-            "",
-            &[],
-            &[],
+            RepoItemDisplay {
+                repo_name: "repo",
+                group_name: "tools",
+                registered_groups: &registered_groups,
+                desc_short: "short desc",
+                desc_long: "",
+                display_tags: &[],
+                registered_tags: &[],
+            },
             DescDisplayMode::RightPane,
         );
 
@@ -391,13 +402,15 @@ mod tests {
     fn repo_item_lines_include_long_desc_when_left_short_and_long_mode_is_enabled() {
         let registered_groups = vec!["tools".to_string()];
         let lines = repo_item_lines(
-            "repo",
-            "tools",
-            &registered_groups,
-            "short desc",
-            "line 1\nline 2",
-            &[],
-            &[],
+            RepoItemDisplay {
+                repo_name: "repo",
+                group_name: "tools",
+                registered_groups: &registered_groups,
+                desc_short: "short desc",
+                desc_long: "line 1\nline 2",
+                display_tags: &[],
+                registered_tags: &[],
+            },
             DescDisplayMode::LeftShortAndLong,
         );
 
