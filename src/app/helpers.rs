@@ -1,4 +1,4 @@
-use super::{SortMode, TagBinding, TagSummaryEntry, TAG_KEYS};
+use super::{GroupBinding, SortMode, TagBinding, TagSummaryEntry, TAG_KEYS};
 use crate::model::Repo;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::{
@@ -7,10 +7,18 @@ use std::{
 };
 
 pub(crate) fn tag_page_count(total_tags: usize) -> usize {
-    if total_tags == 0 {
+    shortcut_page_count(total_tags)
+}
+
+pub(crate) fn group_page_count(total_groups: usize) -> usize {
+    shortcut_page_count(total_groups)
+}
+
+fn shortcut_page_count(total_items: usize) -> usize {
+    if total_items == 0 {
         0
     } else {
-        1 + (total_tags - 1) / TAG_KEYS.len()
+        1 + (total_items - 1) / TAG_KEYS.len()
     }
 }
 
@@ -23,10 +31,27 @@ pub(crate) fn clamp_tag_page(page: usize, page_count: usize) -> usize {
 }
 
 pub(crate) fn tag_bindings_for_page(registered_tags: &[String], page: usize) -> Vec<TagBinding> {
-    let page_count = tag_page_count(registered_tags.len());
+    shortcut_bindings_for_page(registered_tags, page)
+        .into_iter()
+        .map(|(key, tag)| TagBinding { key, tag })
+        .collect()
+}
+
+pub(crate) fn group_bindings_for_page(
+    registered_groups: &[String],
+    page: usize,
+) -> Vec<GroupBinding> {
+    shortcut_bindings_for_page(registered_groups, page)
+        .into_iter()
+        .map(|(key, group)| GroupBinding { key, group })
+        .collect()
+}
+
+fn shortcut_bindings_for_page(items: &[String], page: usize) -> Vec<(char, String)> {
+    let page_count = shortcut_page_count(items.len());
     let page = clamp_tag_page(page, page_count);
     let start = page.saturating_mul(TAG_KEYS.len());
-    let page_tags = registered_tags
+    let page_items = items
         .iter()
         .skip(start)
         .take(TAG_KEYS.len())
@@ -34,26 +59,37 @@ pub(crate) fn tag_bindings_for_page(registered_tags: &[String], page: usize) -> 
         .collect::<Vec<_>>();
     let mut used_keys = HashSet::with_capacity(TAG_KEYS.len());
 
-    page_tags
+    page_items
         .into_iter()
-        .map(|tag| {
-            let key = tag_shortcut_candidates(&tag)
+        .map(|item| {
+            let key = tag_shortcut_candidates(&item)
                 .find(|candidate| used_keys.insert(*candidate))
-                .expect("tag shortcut candidates always cover all tag keys");
-            TagBinding { key, tag }
+                .expect("shortcut candidates always cover all tag keys");
+            (key, item)
         })
         .collect()
 }
 
 pub(crate) fn tag_shortcut_for_tag(registered_tags: &[String], tag: &str) -> Option<(usize, char)> {
-    let index = registered_tags
+    shortcut_for_item(registered_tags, tag)
+}
+
+pub(crate) fn group_shortcut_for_group(
+    registered_groups: &[String],
+    group: &str,
+) -> Option<(usize, char)> {
+    shortcut_for_item(registered_groups, group)
+}
+
+fn shortcut_for_item(items: &[String], item: &str) -> Option<(usize, char)> {
+    let index = items
         .iter()
-        .position(|registered_tag| registered_tag == tag)?;
+        .position(|registered_item| registered_item == item)?;
     let page = index / TAG_KEYS.len();
-    let key = tag_bindings_for_page(registered_tags, page)
+    let key = shortcut_bindings_for_page(items, page)
         .into_iter()
-        .find(|binding| binding.tag == tag)
-        .map(|binding| binding.key)?;
+        .find(|binding| binding.1 == item)
+        .map(|binding| binding.0)?;
     Some((page, key))
 }
 

@@ -46,6 +46,10 @@ pub(super) fn warning() -> Style {
     style(BACKGROUND, YELLOW)
 }
 
+pub(super) fn monokai_light_gray() -> Style {
+    Style::default().fg(LIGHT_GRAY)
+}
+
 pub(super) fn monokai_tag(index: usize) -> Style {
     Style::default().fg(MONOKAI_TAG_COLORS[index % MONOKAI_TAG_COLORS.len()])
 }

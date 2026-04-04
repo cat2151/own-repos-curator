@@ -1,4 +1,6 @@
+mod group_colors;
 mod help;
+mod input_overlays;
 mod layout;
 mod overlays;
 mod panels;
@@ -6,11 +8,13 @@ mod tag_colors;
 mod theme;
 
 use self::{
-    help::{render_main_help, render_tag_binding_help},
+    group_colors::span_for_group,
+    help::{render_group_binding_help, render_main_help, render_tag_binding_help},
+    input_overlays::{render_group_input, render_tag_input, render_text_editor},
     layout::{left_pane_width, log_pane_height},
     overlays::{
-        render_tag_binding_mode, render_tag_filter_mode, render_tag_input, render_tag_manager,
-        render_text_editor,
+        render_group_binding_mode, render_group_manager, render_tag_binding_mode,
+        render_tag_filter_mode, render_tag_manager,
     },
     panels::{
         render_log_pane, render_selected_repo_desc, render_selected_repo_tag_detail,
@@ -31,10 +35,13 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
 
     let help_screen = app.help_screen();
     let tag_binding_mode = app.tag_binding_mode_state();
+    let group_binding_mode = app.group_binding_mode_state();
     let tag_filter_mode = app.tag_filter_mode_state();
 
     let visible_indices = app.visible_repo_indices();
+    let registered_groups = app.registered_groups().to_vec();
     let registered_tags = app.data.registered_tags.clone();
+    let group_catalog = app.group_catalog_state();
     let tag_catalog = app.tag_catalog_state();
     let tag_summary = app.tag_summary_entries();
     let selected_repo_tag_detail = app.selected_repo_tag_detail_state();
@@ -42,7 +49,9 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     let bottom_hint = app.bottom_hint();
     let tag_filter_title = app.tag_filter_title_label();
     let tag_manager = app.tag_manager_state();
-    let tag_input = app.tag_input.clone();
+    let mut tag_input = app.tag_input.clone();
+    let group_manager = app.group_manager_state();
+    let mut group_input = app.group_input.clone();
     let debug_log = app.debug_log_lines();
     let desc_display_mode = app.desc_display_mode();
     let debug_log_expanded = app.debug_log_expanded();
@@ -62,9 +71,12 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
         .iter()
         .filter_map(|index| {
             let repo = app.data.repos.get(*index)?;
+            let display_group = app.display_group_for_repo_index(*index);
             let display_tags = app.display_tags_for_repo_index(*index);
             Some(repo_item_lines(
                 repo.name.as_str(),
+                display_group.as_str(),
+                &registered_groups,
                 repo.desc_short.as_str(),
                 repo.desc_long.as_str(),
                 &display_tags,
@@ -170,18 +182,26 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
 
     if let Some(editor) = app.editor.as_mut() {
         render_text_editor(f, screen_chunks[0], editor);
-    } else if let Some(tag_input) = tag_input.as_ref() {
+    } else if let Some(tag_input) = tag_input.as_mut() {
         render_tag_input(f, screen_chunks[0], tag_input);
+    } else if let Some(group_input) = group_input.as_mut() {
+        render_group_input(f, screen_chunks[0], group_input);
     } else if let Some(tag_manager) = tag_manager.as_ref() {
         render_tag_manager(f, screen_chunks[0], tag_manager);
+    } else if let Some(group_manager) = group_manager.as_ref() {
+        render_group_manager(f, screen_chunks[0], group_manager);
     } else if let Some(tag_binding_mode) = tag_binding_mode.as_ref() {
         render_tag_binding_mode(f, screen_chunks[0], tag_binding_mode);
+    } else if let Some(group_binding_mode) = group_binding_mode.as_ref() {
+        render_group_binding_mode(f, screen_chunks[0], group_binding_mode, &group_catalog);
     } else if let Some(tag_filter_mode) = tag_filter_mode.as_ref() {
         render_tag_filter_mode(f, screen_chunks[0], tag_filter_mode, &tag_catalog);
     }
 
     if matches!(help_screen, Some(HelpScreen::TagBinding)) {
         render_tag_binding_help(f, area, tag_binding_mode.as_ref());
+    } else if matches!(help_screen, Some(HelpScreen::GroupBinding)) {
+        render_group_binding_help(f, area, group_binding_mode.as_ref());
     } else if matches!(help_screen, Some(HelpScreen::Main)) {
         render_main_help(f, area);
     }
@@ -189,10 +209,17 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
 
 fn repo_line(
     repo_name: &str,
+    group_name: &str,
+    registered_groups: &[String],
     display_tags: &[String],
     registered_tags: &[String],
 ) -> Line<'static> {
-    let mut spans = vec![Span::styled(repo_name.to_string(), theme::accent())];
+    let mut spans = vec![
+        Span::styled(repo_name.to_string(), theme::accent()),
+        Span::styled(" <".to_string(), theme::soft()),
+        span_for_group(registered_groups, group_name),
+        Span::styled(">".to_string(), theme::soft()),
+    ];
 
     if display_tags.is_empty() {
         return Line::from(spans);
@@ -212,13 +239,21 @@ fn repo_line(
 
 fn repo_item_lines(
     repo_name: &str,
+    group_name: &str,
+    registered_groups: &[String],
     desc_short: &str,
     desc_long: &str,
     display_tags: &[String],
     registered_tags: &[String],
     desc_display_mode: DescDisplayMode,
 ) -> Vec<Line<'static>> {
-    let mut lines = vec![repo_line(repo_name, display_tags, registered_tags)];
+    let mut lines = vec![repo_line(
+        repo_name,
+        group_name,
+        registered_groups,
+        display_tags,
+        registered_tags,
+    )];
 
     let desc_short = desc_short.trim();
     if desc_display_mode.shows_inline_short_desc() && !desc_short.is_empty() {
@@ -243,39 +278,86 @@ fn repo_item_lines(
 
 #[cfg(test)]
 mod tests {
-    use super::{repo_item_lines, repo_line, tag_colors, theme};
-    use crate::app::DescDisplayMode;
+    use super::{group_colors, repo_item_lines, repo_line, tag_colors, theme};
+    use crate::{app::DescDisplayMode, model::DEFAULT_GROUP_NAME};
 
     #[test]
     fn repo_line_colors_tags_by_registered_order() {
+        let registered_groups = vec!["tools".to_string()];
         let registered_tags = vec!["rust".to_string(), "zig".to_string(), "go".to_string()];
         let display_tags = vec!["go".to_string(), "rust".to_string()];
 
-        let line = repo_line("repo", &display_tags, &registered_tags);
+        let line = repo_line(
+            "repo",
+            "tools",
+            &registered_groups,
+            &display_tags,
+            &registered_tags,
+        );
 
-        assert_eq!(line.spans[2].content.as_ref(), "go");
-        assert_eq!(line.spans[2].style, theme::monokai_tag(2));
-        assert_eq!(line.spans[4].content.as_ref(), "rust");
-        assert_eq!(line.spans[4].style, theme::monokai_tag(0));
+        assert_eq!(line.spans[5].content.as_ref(), "go");
+        assert_eq!(line.spans[5].style, theme::monokai_tag(2));
+        assert_eq!(line.spans[7].content.as_ref(), "rust");
+        assert_eq!(line.spans[7].style, theme::monokai_tag(0));
     }
 
     #[test]
     fn repo_line_uses_shared_tag_color_helper() {
+        let registered_groups = vec!["tools".to_string()];
         let registered_tags = vec!["rust".to_string(), "zig".to_string()];
         let display_tags = vec!["zig".to_string()];
 
-        let line = repo_line("repo", &display_tags, &registered_tags);
+        let line = repo_line(
+            "repo",
+            "tools",
+            &registered_groups,
+            &display_tags,
+            &registered_tags,
+        );
 
         assert_eq!(
-            line.spans[2].style,
+            line.spans[5].style,
             tag_colors::style_for_tag(&registered_tags, "zig")
         );
     }
 
     #[test]
+    fn repo_line_colors_groups_by_registered_order() {
+        let registered_groups = vec![
+            "apps".to_string(),
+            DEFAULT_GROUP_NAME.to_string(),
+            "tools".to_string(),
+        ];
+
+        let line = repo_line("repo", "tools", &registered_groups, &[], &[]);
+
+        assert_eq!(line.spans[2].content.as_ref(), "tools");
+        assert_eq!(
+            line.spans[2].style,
+            group_colors::style_for_group(&registered_groups, "tools")
+        );
+    }
+
+    #[test]
+    fn repo_line_renders_default_group_in_light_gray() {
+        let registered_groups = vec![DEFAULT_GROUP_NAME.to_string(), "tools".to_string()];
+
+        let line = repo_line("repo", DEFAULT_GROUP_NAME, &registered_groups, &[], &[]);
+
+        assert_eq!(
+            line.spans[2].style,
+            group_colors::style_for_group(&registered_groups, DEFAULT_GROUP_NAME)
+        );
+        assert_eq!(line.spans[2].style, theme::monokai_light_gray());
+    }
+
+    #[test]
     fn repo_item_lines_include_indented_short_desc_when_inline_mode_is_enabled() {
+        let registered_groups = vec!["tools".to_string()];
         let lines = repo_item_lines(
             "repo",
+            "tools",
+            &registered_groups,
             "short desc",
             "",
             &[],
@@ -290,8 +372,11 @@ mod tests {
 
     #[test]
     fn repo_item_lines_omit_short_desc_when_inline_mode_is_disabled() {
+        let registered_groups = vec!["tools".to_string()];
         let lines = repo_item_lines(
             "repo",
+            "tools",
+            &registered_groups,
             "short desc",
             "",
             &[],
@@ -304,8 +389,11 @@ mod tests {
 
     #[test]
     fn repo_item_lines_include_long_desc_when_left_short_and_long_mode_is_enabled() {
+        let registered_groups = vec!["tools".to_string()];
         let lines = repo_item_lines(
             "repo",
+            "tools",
+            &registered_groups,
             "short desc",
             "line 1\nline 2",
             &[],

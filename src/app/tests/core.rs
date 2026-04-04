@@ -1,6 +1,7 @@
 use super::super::{
     helpers::{summarize_tag_counts, tag_bindings_for_page, tag_page_count, tag_shortcut_for_tag},
-    AppEvent, DescDisplayMode, EditorField, SortMode, TagInputMode, TagSummaryEntry, TAG_KEYS,
+    AppEvent, DescDisplayMode, EditorField, GroupInputMode, SortMode, TagInputMode,
+    TagSummaryEntry, TAG_KEYS,
 };
 use super::common::{
     app_with_registered_tags, app_with_repos, cleanup_app_file, ctrl_key, key, repo, shift_key,
@@ -203,8 +204,8 @@ fn pressing_q_while_typing_tag_input_keeps_input_open() {
 
     assert!(matches!(event, AppEvent::Continue));
     assert_eq!(
-        app.tag_input.as_ref().map(|input| input.buffer.as_str()),
-        Some("q")
+        app.tag_input.as_ref().map(|input| input.value()),
+        Some("q".to_string())
     );
 
     cleanup_app_file(&app);
@@ -231,6 +232,24 @@ fn pressing_ctrl_n_on_main_screen_opens_tag_input() {
 }
 
 #[test]
+fn pressing_ctrl_g_on_main_screen_opens_group_input() {
+    let mut app = app_with_repos(vec![repo("solo", "2026-03-01T00:00:00Z", None)]);
+
+    app.handle_key(ctrl_key('g'));
+
+    assert!(matches!(
+        app.group_input.as_ref().map(|input| &input.mode),
+        Some(GroupInputMode::CreateAndAssignToSelectedRepo)
+    ));
+    assert_eq!(
+        app.status_message,
+        "新規group: Enterで保存 / Escでキャンセル"
+    );
+
+    cleanup_app_file(&app);
+}
+
+#[test]
 fn pressing_shift_t_on_main_screen_opens_tag_manager() {
     let mut app = app_with_registered_tags(
         vec![repo("solo", "2026-03-01T00:00:00Z", None)],
@@ -243,6 +262,24 @@ fn pressing_shift_t_on_main_screen_opens_tag_manager() {
     assert_eq!(
         app.status_message,
         "tag manager: j/k移動 n新規 r改名 Escで閉じる"
+    );
+
+    cleanup_app_file(&app);
+}
+
+#[test]
+fn pressing_shift_g_on_main_screen_opens_group_manager() {
+    let mut app = app_with_registered_tags(
+        vec![repo("solo", "2026-03-01T00:00:00Z", None)],
+        vec!["rust".to_string()],
+    );
+
+    app.handle_key(shift_key('g'));
+
+    assert!(app.group_manager.is_some());
+    assert_eq!(
+        app.status_message,
+        "group manager: j/k移動 n新規 r改名 Escで閉じる"
     );
 
     cleanup_app_file(&app);
@@ -475,6 +512,8 @@ fn selected_repo_desc_state_contains_github_short_and_long_descriptions() {
     assert_eq!(state.github_desc, "repo from GitHub");
     assert_eq!(state.desc_short, "short");
     assert_eq!(state.desc_long, "line 1\nline 2\nline 3");
+    assert_eq!(state.group, "ungrouped");
+    assert_eq!(state.group_key_hint, "u");
 
     cleanup_app_file(&app);
 }

@@ -107,6 +107,11 @@ fn selected_repo_desc_lines(state: &SelectedRepoDescState) -> Vec<Line<'static>>
         state.repo_name.clone(),
         theme::accent().add_modifier(Modifier::BOLD),
     ))];
+    detail_lines.push(Line::from(vec![
+        Span::styled("group: ".to_string(), theme::muted()),
+        Span::styled(state.group.clone(), theme::warning()),
+        Span::styled(format!(" ({})", state.group_key_hint), theme::soft()),
+    ]));
 
     detail_lines.push(Line::from(Span::styled(
         "GitHub:".to_string(),
@@ -399,20 +404,24 @@ mod tests {
             github_desc: "GitHub managed description".to_string(),
             desc_short: "short desc".to_string(),
             desc_long: "line 1\nline 2".to_string(),
+            group: "tools".to_string(),
+            group_key_hint: "t".to_string(),
         };
 
         let lines = selected_repo_desc_lines(&state);
 
-        assert_eq!(lines[1].spans[0].content.as_ref(), "GitHub:");
+        assert_eq!(lines[1].spans[0].content.as_ref(), "group: ");
+        assert_eq!(lines[1].spans[1].content.as_ref(), "tools");
+        assert_eq!(lines[2].spans[0].content.as_ref(), "GitHub:");
         assert_eq!(
-            lines[2].spans[1].content.as_ref(),
+            lines[3].spans[1].content.as_ref(),
             "GitHub managed description"
         );
-        assert_eq!(lines[3].spans[0].content.as_ref(), "1行: ");
-        assert_eq!(lines[3].spans[1].content.as_ref(), "short desc");
-        assert_eq!(lines[4].spans[0].content.as_ref(), "3行:");
-        assert_eq!(lines[5].spans[1].content.as_ref(), "line 1");
-        assert_eq!(lines[6].spans[1].content.as_ref(), "line 2");
+        assert_eq!(lines[4].spans[0].content.as_ref(), "1行: ");
+        assert_eq!(lines[4].spans[1].content.as_ref(), "short desc");
+        assert_eq!(lines[5].spans[0].content.as_ref(), "3行:");
+        assert_eq!(lines[6].spans[1].content.as_ref(), "line 1");
+        assert_eq!(lines[7].spans[1].content.as_ref(), "line 2");
     }
 
     #[test]
@@ -422,13 +431,16 @@ mod tests {
             github_desc: String::new(),
             desc_short: String::new(),
             desc_long: String::new(),
+            group: "tools".to_string(),
+            group_key_hint: "t".to_string(),
         };
 
         let lines = selected_repo_desc_lines(&state);
 
-        assert_eq!(lines[1].spans[0].content.as_ref(), "GitHub:");
-        assert_eq!(lines[2].spans[1].content.as_ref(), "(未設定)");
+        assert_eq!(lines[1].spans[0].content.as_ref(), "group: ");
+        assert_eq!(lines[2].spans[0].content.as_ref(), "GitHub:");
         assert_eq!(lines[3].spans[1].content.as_ref(), "(未設定)");
-        assert_eq!(lines[5].spans[1].content.as_ref(), "(未設定)");
+        assert_eq!(lines[4].spans[1].content.as_ref(), "(未設定)");
+        assert_eq!(lines[6].spans[1].content.as_ref(), "(未設定)");
     }
 }

@@ -4,29 +4,54 @@ use tui_textarea::{CursorMove, TextArea};
 
 impl TextEditor {
     fn new(field: EditorField, initial_text: &str) -> Self {
-        let mut textarea = TextArea::new(textarea_lines(initial_text));
-        textarea.set_max_histories(256);
-        textarea.move_cursor(CursorMove::Bottom);
-        textarea.move_cursor(CursorMove::End);
+        let textarea = new_textarea(initial_text);
 
         Self { field, textarea }
     }
 
     fn text_for_save(&self) -> String {
         match self.field {
-            EditorField::ShortDesc => self.textarea.lines().join(" "),
-            EditorField::LongDesc => self.textarea.lines().join("\n"),
+            EditorField::ShortDesc => textarea_text(&self.textarea, " "),
+            EditorField::LongDesc => textarea_text(&self.textarea, "\n"),
         }
     }
 
     fn normalize_single_line(&mut self) {
-        if matches!(self.field, EditorField::ShortDesc) && self.textarea.lines().len() > 1 {
-            let flattened = self.textarea.lines().join(" ");
-            self.textarea = TextArea::new(vec![flattened]);
-            self.textarea.set_max_histories(256);
-            self.textarea.move_cursor(CursorMove::End);
+        if matches!(self.field, EditorField::ShortDesc) {
+            normalize_single_line_textarea(&mut self.textarea);
         }
     }
+}
+
+pub(crate) fn new_textarea(initial_text: &str) -> TextArea<'static> {
+    configured_textarea(textarea_lines(initial_text))
+}
+
+pub(crate) fn new_single_line_textarea(initial_text: &str) -> TextArea<'static> {
+    let mut textarea = new_textarea(initial_text);
+    normalize_single_line_textarea(&mut textarea);
+    textarea
+}
+
+pub(crate) fn textarea_text(textarea: &TextArea<'_>, joiner: &str) -> String {
+    textarea.lines().join(joiner)
+}
+
+pub(crate) fn normalize_single_line_textarea(textarea: &mut TextArea<'static>) {
+    if textarea.lines().len() <= 1 {
+        return;
+    }
+
+    let flattened = textarea_text(textarea, " ");
+    *textarea = configured_textarea(vec![flattened]);
+}
+
+fn configured_textarea(lines: Vec<String>) -> TextArea<'static> {
+    let mut textarea = TextArea::new(lines);
+    textarea.set_max_histories(256);
+    textarea.move_cursor(CursorMove::Bottom);
+    textarea.move_cursor(CursorMove::End);
+    textarea
 }
 
 fn textarea_lines(text: &str) -> Vec<String> {

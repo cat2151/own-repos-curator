@@ -2,6 +2,7 @@ mod app;
 mod config;
 mod github;
 mod json_auto_push;
+mod local_json_sync;
 mod main_cli;
 mod model;
 mod paths;

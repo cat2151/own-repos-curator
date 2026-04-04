@@ -211,10 +211,10 @@ impl App {
                     self.status_message = "rename対象のtagがありません".to_string();
                     return;
                 };
-                self.tag_input = Some(TagInput {
-                    mode: TagInputMode::RenameGlobal { from: from.clone() },
-                    buffer: from,
-                });
+                self.tag_input = Some(TagInput::new(
+                    TagInputMode::RenameGlobal { from: from.clone() },
+                    &from,
+                ));
                 self.status_message = "tag rename: Enterで保存 / Escでキャンセル".to_string();
                 self.push_debug_log("tag rename overlay opened");
             }
@@ -225,19 +225,16 @@ impl App {
     }
 
     pub(crate) fn begin_new_tag_input(&mut self) {
-        self.tag_input = Some(TagInput {
-            mode: TagInputMode::CreateAndAssignToSelectedRepo,
-            buffer: String::new(),
-        });
+        self.tag_input = Some(TagInput::new(
+            TagInputMode::CreateAndAssignToSelectedRepo,
+            "",
+        ));
         self.status_message = "新規tag: Enterで保存 / Escでキャンセル".to_string();
         self.push_debug_log("tag_input overlay opened: CreateAndAssignToSelectedRepo");
     }
 
     pub(crate) fn begin_new_registered_tag_input(&mut self) {
-        self.tag_input = Some(TagInput {
-            mode: TagInputMode::CreateRegisteredOnly,
-            buffer: String::new(),
-        });
+        self.tag_input = Some(TagInput::new(TagInputMode::CreateRegisteredOnly, ""));
         self.status_message = "新規tag: Enterで保存 / Escでキャンセル".to_string();
         self.push_debug_log("tag_input overlay opened: CreateRegisteredOnly");
     }
@@ -248,7 +245,7 @@ impl App {
             describe_key_code(&key.code),
             self.tag_input
                 .as_ref()
-                .map(|input| input.buffer.chars().count())
+                .map(|input| input.value().chars().count())
                 .unwrap_or(0)
         ));
         if key.modifiers.contains(KeyModifiers::CONTROL)
@@ -265,20 +262,16 @@ impl App {
                 self.status_message = "tag入力をキャンセル".to_string();
                 self.push_debug_log("tag_input cancelled");
             }
-            KeyCode::Backspace => {
-                if let Some(input) = self.tag_input.as_mut() {
-                    input.buffer.pop();
-                }
-                self.push_debug_log("tag_input backspace");
-            }
-            KeyCode::Char(ch) => {
-                if let Some(input) = self.tag_input.as_mut() {
-                    input.buffer.push(ch);
-                }
-                self.push_debug_log(format!("tag_input append: {:?}", ch));
-            }
             _ => {
-                self.push_debug_log("tag_input key ignored");
+                let edited_value = if let Some(input) = self.tag_input.as_mut() {
+                    input.handle_key(key);
+                    Some(input.value())
+                } else {
+                    None
+                };
+                if let Some(value) = edited_value {
+                    self.push_debug_log(format!("tag_input edited: {:?}", value));
+                }
             }
         }
     }
@@ -288,7 +281,7 @@ impl App {
             self.push_debug_log("save_tag_input skipped: no input");
             return;
         };
-        let value = input.buffer.trim().to_string();
+        let value = input.value().trim().to_string();
         self.push_debug_log(format!("save_tag_input: trimmed_value={:?}", value));
         if value.is_empty() {
             self.status_message = "tagは空にできません".to_string();

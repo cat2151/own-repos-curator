@@ -1,5 +1,5 @@
 use super::{
-    helpers::{clamp_tag_page, tag_page_count},
+    helpers::{clamp_tag_page, group_page_count, tag_page_count},
     App,
 };
 
@@ -26,15 +26,29 @@ impl App {
         &self.data.registered_tags
     }
 
+    pub(crate) fn registered_groups(&self) -> &[String] {
+        &self.data.registered_groups
+    }
+
     pub(crate) fn sync_selection(&mut self) {
         let registered_tag_count = self.registered_tags().len();
         self.registered_tag_page = clamp_tag_page(
             self.registered_tag_page,
             tag_page_count(registered_tag_count),
         );
+        let registered_group_count = self.registered_groups().len();
+        self.registered_group_page = clamp_tag_page(
+            self.registered_group_page,
+            group_page_count(registered_group_count),
+        );
 
         if let Some(manager) = self.tag_manager.as_mut() {
             manager.selected = manager.selected.min(registered_tag_count.saturating_sub(1));
+        }
+        if let Some(manager) = self.group_manager.as_mut() {
+            manager.selected = manager
+                .selected
+                .min(registered_group_count.saturating_sub(1));
         }
 
         let visible_len = self.visible_repo_count();
@@ -97,6 +111,34 @@ impl App {
         self.status_message = format!(
             "registered tag page: {}/{}",
             self.registered_tag_page + 1,
+            page_count
+        );
+    }
+
+    pub(crate) fn prev_registered_group_page(&mut self) {
+        let page_count = group_page_count(self.registered_groups().len());
+        if page_count <= 1 || self.registered_group_page == 0 {
+            return;
+        }
+
+        self.registered_group_page -= 1;
+        self.status_message = format!(
+            "registered group page: {}/{}",
+            self.registered_group_page + 1,
+            page_count
+        );
+    }
+
+    pub(crate) fn next_registered_group_page(&mut self) {
+        let page_count = group_page_count(self.registered_groups().len());
+        if page_count <= 1 || self.registered_group_page + 1 >= page_count {
+            return;
+        }
+
+        self.registered_group_page += 1;
+        self.status_message = format!(
+            "registered group page: {}/{}",
+            self.registered_group_page + 1,
             page_count
         );
     }

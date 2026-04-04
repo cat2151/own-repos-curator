@@ -1,4 +1,4 @@
-use crate::model::{Repo, RepoData};
+use crate::model::{Repo, RepoData, DEFAULT_GROUP_NAME};
 use anyhow::{anyhow, Context, Result};
 use chrono::Utc;
 use serde::Deserialize;
@@ -56,8 +56,10 @@ pub fn sync_repo_data(data: &mut RepoData) -> Result<SyncSummary> {
             github_desc,
             desc_short: String::new(),
             desc_long: String::new(),
+            group: DEFAULT_GROUP_NAME.to_string(),
             tags: Vec::new(),
         });
+        data.ensure_registered_group(DEFAULT_GROUP_NAME);
         added += 1;
     }
 

@@ -1,5 +1,5 @@
 use super::super::{App, DescDisplayMode, SortMode};
-use crate::model::{Meta, Repo, RepoData};
+use crate::model::{Meta, Repo, RepoData, DEFAULT_GROUP_NAME};
 use chrono::{DateTime, Utc};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::widgets::ListState;
@@ -18,6 +18,7 @@ pub(super) fn repo(name: &str, created_at: &str, updated_at: Option<&str>) -> Re
         github_desc: String::new(),
         desc_short: String::new(),
         desc_long: String::new(),
+        group: DEFAULT_GROUP_NAME.to_string(),
         tags: Vec::new(),
     }
 }
@@ -46,12 +47,40 @@ pub(super) fn registered_tags_from_repos(repos: &[Repo]) -> Vec<String> {
         .collect()
 }
 
+pub(super) fn registered_groups_from_repos(repos: &[Repo]) -> Vec<String> {
+    let mut groups = repos
+        .iter()
+        .map(|repo| repo.group.clone())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    if groups.is_empty() {
+        groups.push(DEFAULT_GROUP_NAME.to_string());
+    }
+    groups
+}
+
 pub(super) fn app_with_repos(repos: Vec<Repo>) -> App {
     let registered_tags = registered_tags_from_repos(&repos);
-    app_with_registered_tags(repos, registered_tags)
+    let registered_groups = registered_groups_from_repos(&repos);
+    app_with_registered_tags_and_groups(repos, registered_tags, registered_groups)
 }
 
 pub(super) fn app_with_registered_tags(repos: Vec<Repo>, registered_tags: Vec<String>) -> App {
+    let registered_groups = registered_groups_from_repos(&repos);
+    app_with_registered_tags_and_groups(repos, registered_tags, registered_groups)
+}
+
+pub(super) fn app_with_registered_tags_and_groups(
+    repos: Vec<Repo>,
+    registered_tags: Vec<String>,
+    registered_groups: Vec<String>,
+) -> App {
+    let registered_groups = if registered_groups.is_empty() {
+        vec![DEFAULT_GROUP_NAME.to_string()]
+    } else {
+        registered_groups
+    };
     let mut app = App {
         data: RepoData {
             meta: Meta {
@@ -59,6 +88,7 @@ pub(super) fn app_with_registered_tags(repos: Vec<Repo>, registered_tags: Vec<St
                 last_json_commit_push_date: String::new(),
             },
             registered_tags,
+            registered_groups,
             repos,
         },
         data_path: test_data_path(),
@@ -69,9 +99,13 @@ pub(super) fn app_with_registered_tags(repos: Vec<Repo>, registered_tags: Vec<St
         tag_manager: None,
         tag_input: None,
         tag_binding_mode: None,
+        group_manager: None,
+        group_input: None,
+        group_binding_mode: None,
         tag_filter: Default::default(),
         tag_filter_mode: None,
         registered_tag_page: 0,
+        registered_group_page: 0,
         sort_mode: SortMode::Created,
         desc_display_mode: DescDisplayMode::RightPane,
         debug_log_expanded: false,

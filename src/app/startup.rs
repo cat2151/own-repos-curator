@@ -1,6 +1,6 @@
 use super::{
-    App, DescDisplayMode, HelpScreen, TagBindingMode, TagFilterMode, TagInput, TagManager,
-    TextEditor,
+    App, DescDisplayMode, GroupBindingMode, GroupInput, GroupManager, HelpScreen, TagBindingMode,
+    TagFilterMode, TagInput, TagManager, TextEditor,
 };
 use crate::{
     config::AppConfig,
@@ -31,9 +31,13 @@ pub(super) fn load_app() -> Result<App> {
         tag_manager: None::<TagManager>,
         tag_input: None::<TagInput>,
         tag_binding_mode: None::<TagBindingMode>,
+        group_manager: None::<GroupManager>,
+        group_input: None::<GroupInput>,
+        group_binding_mode: None::<GroupBindingMode>,
         tag_filter: BTreeSet::new(),
         tag_filter_mode: None::<TagFilterMode>,
         registered_tag_page: 0,
+        registered_group_page: 0,
         sort_mode: super::SortMode::Created,
         desc_display_mode: DescDisplayMode::RightPane,
         debug_log_expanded: false,

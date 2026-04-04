@@ -1,11 +1,13 @@
 use super::{
     helpers::{
-        clamp_tag_page, sort_repo_indices, summarize_tag_counts, tag_bindings_for_page,
-        tag_page_count, tag_shortcut_for_tag,
+        clamp_tag_page, group_bindings_for_page, group_page_count, group_shortcut_for_group,
+        sort_repo_indices, summarize_tag_counts, tag_bindings_for_page, tag_page_count,
+        tag_shortcut_for_tag,
     },
-    App, SelectedRepoDescState, SelectedRepoTagDetailEntry, SelectedRepoTagDetailState,
-    TagBindingModeState, TagCatalogEntry, TagCatalogState, TagFilterModeState, TagManagerEntry,
-    TagManagerState, TagSummaryEntry,
+    App, GroupBindingModeState, GroupCatalogEntry, GroupCatalogState, GroupManagerEntry,
+    GroupManagerState, SelectedRepoDescState, SelectedRepoTagDetailEntry,
+    SelectedRepoTagDetailState, TagBindingModeState, TagCatalogEntry, TagCatalogState,
+    TagFilterModeState, TagManagerEntry, TagManagerState, TagSummaryEntry,
 };
 use crate::model::Repo;
 
@@ -30,8 +32,23 @@ impl App {
 
     pub(crate) fn selected_repo_for_display(&self) -> Option<Repo> {
         let mut repo = self.selected_repo()?.clone();
+        repo.group = self.display_group_for_repo_index(self.selected_repo_data_index()?);
         repo.tags = self.display_tags_for_repo_index(self.selected_repo_data_index()?);
         Some(repo)
+    }
+
+    pub(crate) fn display_group_for_repo_index(&self, index: usize) -> String {
+        if let Some(mode) = self.group_binding_mode.as_ref() {
+            if mode.repo_index == index {
+                return mode.pending_group.clone();
+            }
+        }
+
+        self.data
+            .repos
+            .get(index)
+            .map(|repo| repo.group.clone())
+            .unwrap_or_default()
     }
 
     pub(crate) fn display_tags_for_repo_index(&self, index: usize) -> Vec<String> {
@@ -50,6 +67,10 @@ impl App {
 
     pub(crate) fn has_registered_tags(&self) -> bool {
         !self.data.registered_tags.is_empty()
+    }
+
+    pub(crate) fn has_registered_groups(&self) -> bool {
+        !self.data.registered_groups.is_empty()
     }
 
     pub(crate) fn tag_catalog_state(&self) -> TagCatalogState {
@@ -75,6 +96,30 @@ impl App {
         }
     }
 
+    pub(crate) fn group_catalog_state(&self) -> GroupCatalogState {
+        let registered_groups = self.registered_groups();
+        let page_count = group_page_count(registered_groups.len());
+        let page = clamp_tag_page(self.registered_group_page, page_count);
+        let selected_group = self
+            .selected_repo_data_index()
+            .map(|index| self.display_group_for_repo_index(index))
+            .unwrap_or_default();
+        let entries = group_bindings_for_page(registered_groups, page)
+            .into_iter()
+            .map(|binding| GroupCatalogEntry {
+                key: binding.key,
+                selected: binding.group == selected_group,
+                group: binding.group,
+            })
+            .collect();
+        GroupCatalogState {
+            entries,
+            page,
+            page_count,
+            total_groups: registered_groups.len(),
+        }
+    }
+
     pub(crate) fn tag_summary_entries(&self) -> Vec<TagSummaryEntry> {
         let visible_indices = self.visible_repo_indices();
         summarize_tag_counts(
@@ -96,6 +141,18 @@ impl App {
         Some(TagManagerState { entries, selected })
     }
 
+    pub(crate) fn group_manager_state(&self) -> Option<GroupManagerState> {
+        let manager = self.group_manager.as_ref()?;
+        let entries = self
+            .registered_groups()
+            .iter()
+            .cloned()
+            .map(|group| GroupManagerEntry { group })
+            .collect::<Vec<_>>();
+        let selected = manager.selected.min(entries.len().saturating_sub(1));
+        Some(GroupManagerState { entries, selected })
+    }
+
     pub(crate) fn tag_binding_mode_state(&self) -> Option<TagBindingModeState> {
         let mode = self.tag_binding_mode.as_ref()?;
         Some(TagBindingModeState {
@@ -111,6 +168,15 @@ impl App {
                 .difference(&mode.pending_tags)
                 .cloned()
                 .collect(),
+        })
+    }
+
+    pub(crate) fn group_binding_mode_state(&self) -> Option<GroupBindingModeState> {
+        let mode = self.group_binding_mode.as_ref()?;
+        Some(GroupBindingModeState {
+            repo_name: mode.repo_name.clone(),
+            original_group: mode.original_group.clone(),
+            pending_group: mode.pending_group.clone(),
         })
     }
 
@@ -136,13 +202,22 @@ impl App {
         if self.tag_input.is_some() {
             return "Enter:save Esc:cancel".to_string();
         }
+        if self.group_input.is_some() {
+            return "Enter:save Esc:cancel".to_string();
+        }
         if self.tag_binding_mode.is_some() {
             return "Enter:save Esc:cancel ?:help".to_string();
+        }
+        if self.group_binding_mode.is_some() {
+            return "a-z:assign Esc:cancel ?:help".to_string();
         }
         if self.tag_filter_mode_active() {
             return "a-z:on A-Z:off ←→:page Enter:apply Esc:cancel".to_string();
         }
         if self.tag_manager.is_some() {
+            return "q:quit Esc:close".to_string();
+        }
+        if self.group_manager.is_some() {
             return "q:quit Esc:close".to_string();
         }
         "q:quit ?:help".to_string()
@@ -181,12 +256,21 @@ impl App {
     }
 
     pub(crate) fn selected_repo_desc_state(&self) -> Option<SelectedRepoDescState> {
-        let repo = self.selected_repo()?;
+        let repo = self.selected_repo_for_display()?;
+        let registered_groups = self.registered_groups();
+        let page_count = group_page_count(registered_groups.len());
+        let group_key_hint = match group_shortcut_for_group(registered_groups, &repo.group) {
+            Some((page, key)) if page_count > 1 => format!("{key} ({}/{})", page + 1, page_count),
+            Some((_, key)) => key.to_string(),
+            None => "?".to_string(),
+        };
         Some(SelectedRepoDescState {
             repo_name: repo.name.clone(),
             github_desc: repo.github_desc.clone(),
             desc_short: repo.desc_short.clone(),
             desc_long: repo.desc_long.clone(),
+            group: repo.group.clone(),
+            group_key_hint,
         })
     }
 
@@ -197,6 +281,15 @@ impl App {
             .into_iter()
             .find(|entry| entry.key == lowercase)
             .map(|entry| entry.tag)
+    }
+
+    pub(crate) fn group_for_current_page_shortcut(&self, ch: char) -> Option<String> {
+        let lowercase = ch.to_ascii_lowercase();
+        self.group_catalog_state()
+            .entries
+            .into_iter()
+            .find(|entry| entry.key == lowercase)
+            .map(|entry| entry.group)
     }
 
     fn repo_matches_effective_tag_filter(&self, repo: &Repo) -> bool {

@@ -200,7 +200,8 @@ mod tests {
             .as_nanos();
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join(".test-local-data")
-            .join(format!("config-{unique}.toml"))
+            .join(format!("config-{unique}"))
+            .join("config.toml")
     }
 
     #[test]

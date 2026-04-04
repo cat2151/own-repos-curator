@@ -1,5 +1,6 @@
 mod editor;
 mod filter;
+mod groups;
 mod helpers;
 mod navigation;
 mod persistence;
@@ -10,7 +11,10 @@ mod view;
 #[cfg(test)]
 mod tests;
 
-use self::helpers::{describe_key_code, is_plain_or_ctrl_char, is_quit_key, is_shift_char};
+use self::{
+    editor::{new_single_line_textarea, normalize_single_line_textarea, textarea_text},
+    helpers::{describe_key_code, is_ctrl_char, is_plain_or_ctrl_char, is_quit_key, is_shift_char},
+};
 use crate::model::RepoData;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
@@ -37,6 +41,7 @@ pub(crate) enum AppEvent {
 pub(crate) enum HelpScreen {
     Main,
     TagBinding,
+    GroupBinding,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,9 +101,13 @@ pub(crate) struct App {
     pub(crate) tag_manager: Option<TagManager>,
     pub(crate) tag_input: Option<TagInput>,
     pub(crate) tag_binding_mode: Option<TagBindingMode>,
+    pub(crate) group_manager: Option<GroupManager>,
+    pub(crate) group_input: Option<GroupInput>,
+    pub(crate) group_binding_mode: Option<GroupBindingMode>,
     pub(crate) tag_filter: BTreeSet<String>,
     pub(crate) tag_filter_mode: Option<TagFilterMode>,
     registered_tag_page: usize,
+    registered_group_page: usize,
     sort_mode: SortMode,
     desc_display_mode: DescDisplayMode,
     debug_log_expanded: bool,
@@ -126,7 +135,7 @@ pub(crate) struct TagManager {
 #[derive(Clone)]
 pub(crate) struct TagInput {
     pub(crate) mode: TagInputMode,
-    pub(crate) buffer: String,
+    pub(crate) textarea: TextArea<'static>,
 }
 
 #[derive(Clone)]
@@ -135,6 +144,25 @@ pub(crate) struct TagBindingMode {
     pub(crate) repo_name: String,
     pub(crate) original_tags: BTreeSet<String>,
     pub(crate) pending_tags: BTreeSet<String>,
+}
+
+#[derive(Clone)]
+pub(crate) struct GroupManager {
+    pub(crate) selected: usize,
+}
+
+#[derive(Clone)]
+pub(crate) struct GroupInput {
+    pub(crate) mode: GroupInputMode,
+    pub(crate) textarea: TextArea<'static>,
+}
+
+#[derive(Clone)]
+pub(crate) struct GroupBindingMode {
+    pub(crate) repo_index: usize,
+    pub(crate) repo_name: String,
+    pub(crate) original_group: String,
+    pub(crate) pending_group: String,
 }
 
 #[derive(Clone)]
@@ -151,6 +179,49 @@ pub(crate) enum TagInputMode {
     RenameGlobal { from: String },
 }
 
+#[derive(Clone)]
+pub(crate) enum GroupInputMode {
+    CreateAndAssignToSelectedRepo,
+    CreateRegisteredOnly,
+    RenameGlobal { from: String },
+}
+
+impl TagInput {
+    pub(crate) fn new(mode: TagInputMode, initial_text: &str) -> Self {
+        Self {
+            mode,
+            textarea: new_single_line_textarea(initial_text),
+        }
+    }
+
+    pub(crate) fn value(&self) -> String {
+        textarea_text(&self.textarea, " ")
+    }
+
+    pub(crate) fn handle_key(&mut self, key: KeyEvent) {
+        self.textarea.input(key);
+        normalize_single_line_textarea(&mut self.textarea);
+    }
+}
+
+impl GroupInput {
+    pub(crate) fn new(mode: GroupInputMode, initial_text: &str) -> Self {
+        Self {
+            mode,
+            textarea: new_single_line_textarea(initial_text),
+        }
+    }
+
+    pub(crate) fn value(&self) -> String {
+        textarea_text(&self.textarea, " ")
+    }
+
+    pub(crate) fn handle_key(&mut self, key: KeyEvent) {
+        self.textarea.input(key);
+        normalize_single_line_textarea(&mut self.textarea);
+    }
+}
+
 pub(crate) struct TagCatalogState {
     pub(crate) entries: Vec<TagCatalogEntry>,
     pub(crate) page: usize,
@@ -160,10 +231,23 @@ pub(crate) struct TagCatalogState {
     pub(crate) filter_mode_active: bool,
 }
 
+pub(crate) struct GroupCatalogState {
+    pub(crate) entries: Vec<GroupCatalogEntry>,
+    pub(crate) page: usize,
+    pub(crate) page_count: usize,
+    pub(crate) total_groups: usize,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TagBinding {
     pub(crate) key: char,
     pub(crate) tag: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct GroupBinding {
+    pub(crate) key: char,
+    pub(crate) group: String,
 }
 
 pub(crate) struct TagCatalogEntry {
@@ -172,8 +256,19 @@ pub(crate) struct TagCatalogEntry {
     pub(crate) tag: String,
 }
 
+pub(crate) struct GroupCatalogEntry {
+    pub(crate) key: char,
+    pub(crate) selected: bool,
+    pub(crate) group: String,
+}
+
 pub(crate) struct TagManagerState {
     pub(crate) entries: Vec<TagManagerEntry>,
+    pub(crate) selected: usize,
+}
+
+pub(crate) struct GroupManagerState {
+    pub(crate) entries: Vec<GroupManagerEntry>,
     pub(crate) selected: usize,
 }
 
@@ -181,11 +276,21 @@ pub(crate) struct TagManagerEntry {
     pub(crate) tag: String,
 }
 
+pub(crate) struct GroupManagerEntry {
+    pub(crate) group: String,
+}
+
 pub(crate) struct TagBindingModeState {
     pub(crate) repo_name: String,
     pub(crate) pending_count: usize,
     pub(crate) added_tags: Vec<String>,
     pub(crate) removed_tags: Vec<String>,
+}
+
+pub(crate) struct GroupBindingModeState {
+    pub(crate) repo_name: String,
+    pub(crate) original_group: String,
+    pub(crate) pending_group: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -220,6 +325,8 @@ pub(crate) struct SelectedRepoDescState {
     pub(crate) github_desc: String,
     pub(crate) desc_short: String,
     pub(crate) desc_long: String,
+    pub(crate) group: String,
+    pub(crate) group_key_hint: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -311,19 +418,24 @@ impl App {
 
     pub(crate) fn handle_key(&mut self, key: KeyEvent) -> AppEvent {
         self.push_debug_log(format!(
-            "handle_key: code={} tag_input={} editor={} tag_binding={} tag_filter={} tag_manager={} help={}",
+            "handle_key: code={} tag_input={} group_input={} editor={} tag_binding={} group_binding={} tag_filter={} tag_manager={} group_manager={} help={}",
             describe_key_code(&key.code),
             self.tag_input.is_some(),
+            self.group_input.is_some(),
             self.editor.is_some(),
             self.tag_binding_mode.is_some(),
+            self.group_binding_mode.is_some(),
             self.tag_filter_mode.is_some(),
             self.tag_manager.is_some(),
+            self.group_manager.is_some(),
             self.help_screen.is_some()
         ));
 
         if self.tag_input.is_none()
+            && self.group_input.is_none()
             && self.editor.is_none()
             && self.tag_binding_mode.is_none()
+            && self.group_binding_mode.is_none()
             && self.tag_filter_mode.is_none()
             && is_quit_key(&key)
         {
@@ -331,8 +443,10 @@ impl App {
         }
 
         if self.tag_input.is_none()
+            && self.group_input.is_none()
             && self.editor.is_none()
             && self.tag_binding_mode.is_none()
+            && self.group_binding_mode.is_none()
             && self.tag_filter_mode.is_none()
             && is_shift_char(&key, 'l')
         {
@@ -341,8 +455,10 @@ impl App {
         }
 
         if self.tag_input.is_none()
+            && self.group_input.is_none()
             && self.editor.is_none()
             && self.tag_binding_mode.is_none()
+            && self.group_binding_mode.is_none()
             && self.tag_filter_mode.is_none()
             && is_shift_char(&key, 'd')
         {
@@ -362,6 +478,12 @@ impl App {
             return AppEvent::Continue;
         }
 
+        if self.group_input.is_some() {
+            self.push_debug_log("route -> handle_group_input_key");
+            self.handle_group_input_key(key);
+            return AppEvent::Continue;
+        }
+
         if self.editor.is_some() {
             self.push_debug_log("route -> handle_editor_key");
             self.handle_editor_key(key);
@@ -371,6 +493,12 @@ impl App {
         if self.tag_binding_mode.is_some() {
             self.push_debug_log("route -> handle_tag_binding_mode_key");
             self.handle_tag_binding_mode_key(key);
+            return AppEvent::Continue;
+        }
+
+        if self.group_binding_mode.is_some() {
+            self.push_debug_log("route -> handle_group_binding_mode_key");
+            self.handle_group_binding_mode_key(key);
             return AppEvent::Continue;
         }
 
@@ -386,6 +514,12 @@ impl App {
             return AppEvent::Continue;
         }
 
+        if self.group_manager.is_some() {
+            self.push_debug_log("route -> handle_group_manager_key");
+            self.handle_group_manager_key(key);
+            return AppEvent::Continue;
+        }
+
         if is_plain_or_ctrl_char(&key, 'e') {
             self.start_short_desc_edit();
             return AppEvent::Continue;
@@ -398,8 +532,16 @@ impl App {
             self.open_tag_manager();
             return AppEvent::Continue;
         }
+        if is_shift_char(&key, 'g') {
+            self.open_group_manager();
+            return AppEvent::Continue;
+        }
         if is_plain_or_ctrl_char(&key, 'n') {
             self.begin_new_tag_input();
+            return AppEvent::Continue;
+        }
+        if is_ctrl_char(&key, 'g') {
+            self.begin_new_group_input();
             return AppEvent::Continue;
         }
         if is_plain_or_ctrl_char(&key, 'r') {
@@ -418,6 +560,10 @@ impl App {
             }
             KeyCode::Char('t') => {
                 self.begin_tag_binding_mode();
+                AppEvent::Continue
+            }
+            KeyCode::Char('g') => {
+                self.begin_group_binding_mode();
                 AppEvent::Continue
             }
             KeyCode::Char('/') => {

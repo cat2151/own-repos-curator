@@ -44,6 +44,26 @@ fn entering_new_tag_adds_it_to_tag_manager_list() {
 }
 
 #[test]
+fn tag_input_delete_removes_character_at_cursor_position() {
+    let mut app =
+        app_with_registered_tags(vec![repo("solo", "2026-03-01T00:00:00Z", None)], Vec::new());
+
+    app.handle_key(key(KeyCode::Char('n')));
+    for ch in "abcd".chars() {
+        app.handle_key(key(KeyCode::Char(ch)));
+    }
+    app.handle_key(key(KeyCode::Left));
+    app.handle_key(key(KeyCode::Left));
+    app.handle_key(key(KeyCode::Delete));
+    app.handle_key(key(KeyCode::Enter));
+
+    assert_eq!(app.data.repos[0].tags, vec!["abd".to_string()]);
+    assert_eq!(app.data.registered_tags, vec!["abd".to_string()]);
+
+    cleanup_app_file(&app);
+}
+
+#[test]
 fn tag_manager_state_lists_registered_tags() {
     let mut app = app_with_registered_tags(
         vec![repo("solo", "2026-03-01T00:00:00Z", None)],

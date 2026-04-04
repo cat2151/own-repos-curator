@@ -265,6 +265,7 @@ mod tests {
                 last_json_commit_push_date: today.clone(),
             },
             registered_tags: Vec::new(),
+            registered_groups: vec!["ungrouped".to_string()],
             repos: Vec::new(),
         };
         let config = AppConfig {
