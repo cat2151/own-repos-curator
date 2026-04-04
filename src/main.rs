@@ -2,8 +2,10 @@ mod app;
 mod config;
 mod github;
 mod json_auto_push;
+mod main_cli;
 mod model;
 mod paths;
+mod self_update;
 mod ui;
 
 use anyhow::Result;
@@ -13,10 +15,32 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use main_cli::{parse_subcommand, Subcommand};
 use ratatui::{backend::CrosstermBackend, Terminal};
+use self_update::{build_commit_hash, run_self_update};
 use std::{io, time::Duration};
 
+#[cfg(test)]
+#[path = "main_tests.rs"]
+mod tests;
+
 fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    match parse_subcommand(&args) {
+        Some(Subcommand::Hash) => {
+            println!("{}", build_commit_hash());
+            return Ok(());
+        }
+        Some(Subcommand::Update) => {
+            let should_exit = run_self_update()?;
+            if should_exit {
+                std::process::exit(0);
+            }
+            return Ok(());
+        }
+        None => {}
+    }
+
     let mut app = App::load()?;
 
     enable_raw_mode()?;
