@@ -11,12 +11,13 @@ mod ui;
 
 use anyhow::Result;
 use app::{App, AppEvent};
+use clap::Parser;
 use crossterm::{
     event::{self, Event, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use main_cli::{parse_subcommand, Subcommand};
+use main_cli::{Cli, Subcommand};
 use ratatui::{backend::CrosstermBackend, Terminal};
 use self_update::{build_commit_hash, run_self_update};
 use std::{io, time::Duration};
@@ -26,8 +27,8 @@ use std::{io, time::Duration};
 mod tests;
 
 fn main() -> Result<()> {
-    let args: Vec<String> = std::env::args().collect();
-    match parse_subcommand(&args) {
+    let cli = Cli::parse();
+    match cli.command {
         Some(Subcommand::Hash) => {
             println!("{}", build_commit_hash());
             return Ok(());

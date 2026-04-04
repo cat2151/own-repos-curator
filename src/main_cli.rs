@@ -1,13 +1,17 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Subcommand {
-    Hash,
-    Update,
+use clap::{Parser, Subcommand as ClapSubcommand};
+
+#[derive(Debug, Parser, PartialEq, Eq)]
+#[command(name = "repocurator")]
+#[command(about = "TUI for curating descriptions of your GitHub repositories")]
+pub(crate) struct Cli {
+    #[command(subcommand)]
+    pub(crate) command: Option<Subcommand>,
 }
 
-pub(crate) fn parse_subcommand(args: &[String]) -> Option<Subcommand> {
-    match args.get(1).map(String::as_str) {
-        Some("hash") => Some(Subcommand::Hash),
-        Some("update") => Some(Subcommand::Update),
-        _ => None,
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ClapSubcommand)]
+pub(crate) enum Subcommand {
+    /// Print the build-time commit hash
+    Hash,
+    /// Self-update the application from GitHub
+    Update,
 }
