@@ -102,7 +102,7 @@ pub(super) fn render_selected_repo_desc(
     );
 }
 
-fn selected_repo_desc_lines(state: &SelectedRepoDescState) -> Vec<Line<'static>> {
+pub(super) fn selected_repo_desc_lines(state: &SelectedRepoDescState) -> Vec<Line<'static>> {
     let mut detail_lines = vec![Line::from(Span::styled(
         state.repo_name.clone(),
         theme::accent().add_modifier(Modifier::BOLD),
@@ -301,9 +301,22 @@ pub(super) fn render_selected_repo_tag_detail(
         return;
     };
 
+    f.render_widget(
+        Paragraph::new(selected_repo_tag_detail_lines(state, registered_tags))
+            .block(theme::panel_block(" 現repoのtag詳細 "))
+            .style(theme::body())
+            .wrap(Wrap { trim: false }),
+        area,
+    );
+}
+
+pub(super) fn selected_repo_tag_detail_lines(
+    state: &SelectedRepoTagDetailState,
+    registered_tags: &[String],
+) -> Vec<Line<'static>> {
     let mut detail_lines = vec![
         Line::from(Span::styled(
-            state.repo_name.as_str(),
+            state.repo_name.clone(),
             theme::accent().add_modifier(Modifier::BOLD),
         )),
         Line::from(format!("tag数: {}", state.tag_count)),
@@ -319,14 +332,7 @@ pub(super) fn render_selected_repo_tag_detail(
             ])
         }));
     }
-
-    f.render_widget(
-        Paragraph::new(detail_lines)
-            .block(theme::panel_block(" 現repoのtag詳細 "))
-            .style(theme::body())
-            .wrap(Wrap { trim: false }),
-        area,
-    );
+    detail_lines
 }
 
 #[cfg(test)]

@@ -4,6 +4,7 @@ mod input_overlays;
 mod layout;
 mod overlays;
 mod panels;
+mod right_pane;
 mod tag_colors;
 mod theme;
 
@@ -22,6 +23,7 @@ use self::{
         render_group_summary, render_log_pane, render_selected_repo_desc,
         render_selected_repo_tag_detail, render_tag_catalog,
     },
+    right_pane::{layout_right_pane, RightPaneContent},
     tag_colors::span_for_tag,
 };
 use crate::app::{App, DescDisplayMode, HelpScreen};
@@ -132,55 +134,76 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     f.render_stateful_widget(list, chunks[0], &mut app.list_state);
 
     if desc_display_mode.shows_right_desc_pane() {
-        let right_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Fill(5),
-                Constraint::Fill(3),
-                Constraint::Fill(3),
-                Constraint::Fill(4),
-            ])
-            .split(chunks[1]);
+        let right_pane = layout_right_pane(
+            chunks[1],
+            RightPaneContent {
+                group_summary: &group_summary,
+                group_summary_filtered,
+                tag_catalog: &tag_catalog,
+                selected_repo_tag_detail: selected_repo_tag_detail.as_ref(),
+                selected_repo_desc: selected_repo_desc.as_ref(),
+                registered_tags: &registered_tags,
+                show_desc: true,
+            },
+        );
 
-        render_tag_catalog(f, right_chunks[0], &tag_catalog, &registered_tags);
-        render_group_summary(
-            f,
-            right_chunks[1],
-            &group_summary,
-            &registered_groups,
-            group_summary_filtered,
-        );
-        render_selected_repo_tag_detail(
-            f,
-            right_chunks[2],
-            selected_repo_tag_detail.as_ref(),
-            &registered_tags,
-        );
-        render_selected_repo_desc(f, right_chunks[3], selected_repo_desc.as_ref());
+        if right_pane.group_summary.height > 0 {
+            render_group_summary(
+                f,
+                right_pane.group_summary,
+                &group_summary,
+                &registered_groups,
+                group_summary_filtered,
+            );
+        }
+        if right_pane.tag_catalog.height > 0 {
+            render_tag_catalog(f, right_pane.tag_catalog, &tag_catalog, &registered_tags);
+        }
+        if right_pane.tag_detail.height > 0 {
+            render_selected_repo_tag_detail(
+                f,
+                right_pane.tag_detail,
+                selected_repo_tag_detail.as_ref(),
+                &registered_tags,
+            );
+        }
+        if let Some(desc_area) = right_pane.desc.filter(|area| area.height > 0) {
+            render_selected_repo_desc(f, desc_area, selected_repo_desc.as_ref());
+        }
     } else {
-        let right_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Fill(5),
-                Constraint::Fill(3),
-                Constraint::Fill(3),
-            ])
-            .split(chunks[1]);
+        let right_pane = layout_right_pane(
+            chunks[1],
+            RightPaneContent {
+                group_summary: &group_summary,
+                group_summary_filtered,
+                tag_catalog: &tag_catalog,
+                selected_repo_tag_detail: selected_repo_tag_detail.as_ref(),
+                selected_repo_desc: None,
+                registered_tags: &registered_tags,
+                show_desc: false,
+            },
+        );
 
-        render_tag_catalog(f, right_chunks[0], &tag_catalog, &registered_tags);
-        render_group_summary(
-            f,
-            right_chunks[1],
-            &group_summary,
-            &registered_groups,
-            group_summary_filtered,
-        );
-        render_selected_repo_tag_detail(
-            f,
-            right_chunks[2],
-            selected_repo_tag_detail.as_ref(),
-            &registered_tags,
-        );
+        if right_pane.group_summary.height > 0 {
+            render_group_summary(
+                f,
+                right_pane.group_summary,
+                &group_summary,
+                &registered_groups,
+                group_summary_filtered,
+            );
+        }
+        if right_pane.tag_catalog.height > 0 {
+            render_tag_catalog(f, right_pane.tag_catalog, &tag_catalog, &registered_tags);
+        }
+        if right_pane.tag_detail.height > 0 {
+            render_selected_repo_tag_detail(
+                f,
+                right_pane.tag_detail,
+                selected_repo_tag_detail.as_ref(),
+                &registered_tags,
+            );
+        }
     }
 
     render_log_pane(
