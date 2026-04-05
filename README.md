@@ -1,17 +1,17 @@
 # own-repos-curator
 
-A TUI for editing and managing description texts for each repository, centered around a list of repositories. Written in Rust.
+A TUI for editing and managing introductory descriptions for each repository, centered around a list of repositories. Written in Rust.
 
 # Status
 - Currently dogfooding.
 
-# Purpose
+# Usage
 - For efficiently creating repository descriptions.
-  - *Targets your own public repositories (excluding forks and archived repositories).
+  - *Targets your public repositories (excluding forks and archived repositories).
 
 # Features
 - Visualization through grouping and tagging.
-- Various others (may be detailed in the explanation below).
+- Various others (might be explained in the details below).
 
 # Installation
 
@@ -21,7 +21,7 @@ Rust is required.
 cargo install --force --git https://github.com/cat2151/own-repos-curator
 ```
 
-# Run
+# Execution
 
 ```
 repocurator
@@ -40,79 +40,94 @@ repocurator update
 
 ## What is this?
 
-`own-repos-curator` is a TUI application designed to help you cultivate introduction texts for each of your public GitHub repositories, starting from a list of those repositories. It builds upon factual information retrieved from GitHub, allowing you to organize '1-line descriptions', '3-line descriptions', 'tags', and 'groups' locally, and save them as `repos.json`.
+`own-repos-curator` is a TUI application designed to help you cultivate introductory descriptions for each of your public GitHub repositories, starting from your repository list.  
+It allows you to organize `1-line descriptions`, `3-line descriptions`, `tags`, and `groups` locally, based on factual information retrieved from GitHub, and save them as `repos.json`.
 
-It's not merely a tool for viewing a list; it's designed as a workspace for 'preparing your public repositories so they can be introduced to others later'.
+It's not just a tool for viewing a list; it's designed as a workspace for "preparing your public repositories to be presentable to others later."
 
 ## When is this useful?
 
-- When your public repositories have grown numerous, making it difficult even for yourself to keep track of what you've built.
-- When GitHub's description alone isn't enough to convey the full story, and you want to organize the purpose and highlights separately.
-- As a preliminary step before creating descriptions for READMEs, portfolios, GitHub Pages, or introduction pages, when you first want to gather your materials.
+- When your public repositories have grown, and it's hard to keep track of what you've built.
+- When GitHub descriptions alone aren't enough, and you want to organize purposes and highlights separately.
+- When you want to gather source material before writing descriptions for READMEs, portfolios, GitHub Pages, or dedicated showcase pages.
 - When you were manually transcribing to spreadsheets or notes, but missing repository additions or updates became tiresome.
-- When you want to organize descriptions for multiple repositories quickly, without switching back and forth between browser tabs, and primarily using the keyboard.
-- When you want to organize 'which repository to display in which category' using tags and groups.
+- When you want to quickly refine descriptions for multiple repositories using a keyboard-centric workflow, without constantly switching between browser tabs.
+- When you want to organize "which repository belongs to which category" using tags and groups.
 
-It is particularly suitable for those who are continuously nurturing their public repositories. It helps reduce the state where you have built things, but their descriptions lag behind and they get buried.
+It is particularly suited for individuals who continuously cultivate their public repositories.  
+It helps reduce the situation where your creations get buried because their descriptions haven't caught up.
 
 ## What makes it unique compared to existing solutions?
 
-### 1. Fills gaps where GitHub's repository list and description alone are insufficient.
+### 1. Fills gaps where GitHub's repository list or descriptions fall short.
 
-GitHub offers mechanisms for listing repositories and editing descriptions, but it's not optimized for the experience of cross-cutting development of introductory texts. `own-repos-curator` syncs repository names, update times, and existing descriptions from GitHub, while allowing you to manage 'your own introduction data' layered on top.
+While GitHub provides mechanisms for listing repositories and editing descriptions, it's not optimized for the experience of comprehensively cultivating introductory texts across multiple repositories.  
+`own-repos-curator` synchronizes repository names, update times, and existing descriptions from GitHub, and then allows you to manage your "personal introductory data" on top of that.
 
-In other words, it doesn't abandon GitHub; instead, it leverages GitHub as a source of factual data, and uniquely maintains the descriptive context in a separate layer.
+In essence, its uniqueness lies not in abandoning GitHub, but in using GitHub as a source of factual data while maintaining the descriptive context in a separate layer.
 
 ### 2. More specialized for repository management than spreadsheets or Notion.
 
-While repository introductions can be managed with spreadsheets or Notion, repository addition and update information must be entered manually. This application allows you to perform repository list synchronization, description editing, tagging, group assignment, and filtering all within the same interface.
+While you can manage repository introductions in spreadsheets or Notion, you need to manually import repository addition and update information.  
+This application allows you to perform repository list synchronization, description editing, tagging, group assignment, and filtering all within the same interface.
 
-Its strength lies not in the flexibility of a general-purpose tool, but in its singular focus on 'keeping public repositories in an introducible state'.
+Its strength lies in its focus on the single goal of "keeping public repositories in a presentable state," rather than offering the general flexibility of multi-purpose tools.
 
 ### 3. Not just text editing, but also preserving data as reusable JSON assets.
 
-Introduction data is saved to `repos.json`. Therefore, it's easy to repurpose the data for GitHub Pages, static sites, other tools, or generation scripts in the future, and it's not confined within the application.
+The introductory data is saved in `repos.json`.  
+This makes it easy to repurpose the data for future GitHub Pages, static sites, other tools, or generation scripts, ensuring it's not locked within the application.
 
-Furthermore, this repository allows you to copy the JSON to locally related repositories or, if configured, automatically push it to a backup repository on startup, or manually commit/push it from the TUI with `Shift+P`. This setup ensures that creating descriptions isn't an end in itself, but rather facilitates cultivating them as public assets.
+Furthermore, this repository allows you to copy the JSON to related local repositories, automatically push to a backup repository on startup (if configured), or manually commit/push from the TUI with `Shift+P`. This means it's not just "create a description and you're done," but rather structured to easily cultivate it as a public asset.
 
 ### 4. A TUI designed for a large volume of small edits.
 
-This application is better suited for quickly adding short descriptions and classifications to numerous repositories, rather than deep editing of a single repository. Tag assignment, group assignment, filtering, and sorting are all keyboard-driven, making it well-suited for a workflow of 'gradually filling in descriptions'.
+This application is better suited for quickly adding short descriptions and classifications to numerous repositories, rather than deeply editing a single repository.  
+Tag assignment, group assignment, filtering, and sorting are all keyboard-driven, making it ideal for an incremental approach to populating descriptions.
 
-## Past Challenges and What This App Solves
+## Past Challenges and How This Application Solves Them
 
-### Challenge 1: Repository list management quickly becomes manual.
+### Challenge 1. Repository list management quickly becomes manual.
 
-Each time a new repository is created, transcribing it to introduction notes or lists is tedious. As a result, there's a divergence between the repositories you want to introduce and those you've actually organized.
+Each time a new repository is created, transcribing it to an introductory note or list is tedious.  
+As a result, there's a discrepancy between the repositories you want to showcase and those that are actually organized.
 
-This application synchronizes the repository list from GitHub, eliminating the need to manually maintain the list. The first solution is that your 'inventory starting point' is automatically aligned.
+This application synchronizes the repository list from GitHub, eliminating the need to manually maintain it.  
+The first solution is that the "starting point for inventory" is automatically aligned.
 
-### Challenge 2: GitHub descriptions alone provide thin introductory information.
+### Challenge 2. GitHub descriptions alone provide insufficient introductory information.
 
-GitHub descriptions are short, making it difficult to include details like purpose, background, key highlights, or related categories. On the other hand, putting everything in a README makes it difficult to compare items in a list or review them across repositories.
+GitHub descriptions are brief, making it difficult to convey purpose, background, key highlights, or related categories.  
+On the other hand, putting everything in a README makes it harder to compare items in a list or review them comprehensively.
 
-This application retains GitHub descriptions, while allowing for separate '1-line descriptions' and '3-line descriptions'. By separating the 'minimal GitHub description' from the 'supplementary introduction description', it becomes easier to organize how information is presented.
+This application retains GitHub descriptions while allowing you to maintain separate `1-line descriptions` and `3-line descriptions`.  
+By separating "minimal GitHub explanations" from "supplementary introductory explanations," you can better organize how your projects are presented.
 
-### Challenge 3: As repositories grow, they become hard to find without classification axes.
+### Challenge 3. As repositories grow in number, they become harder to find without classification axes.
 
-As the number grows, simply lacking organization axes like 'is it a CLI?', 'is it a Web app?', 'is it for learning?', or 'is it for public use' makes them difficult to utilize.
+When the number of repositories increases, merely lacking organizing principles like "Is it CLI?", "Is it Web?", "Is it for learning?", or "Is it for public use?" makes them harder to leverage.
 
-This application supports tags and groups, allowing you to organize repositories into meaningful clusters. Furthermore, because it's designed with filtering and pagination in mind, it transforms a mere list into a searchable one.
+This application supports tags and groups, allowing you to organize repositories into meaningful clusters.  
+Furthermore, designed with filtering and pagination in mind, it transforms a simple list into a discoverable one.
 
-### Challenge 4: Introduction data is scattered and hard to reuse.
+### Challenge 4. Introductory data is scattered and difficult to reuse.
 
-When introduction texts are dispersed across READMEs, notes, spreadsheets, and local JSON files, it becomes unclear which is the latest version. Additionally, repurposing them for different publication channels incurs formatting costs every time.
+When descriptions are scattered across READMEs, notes, spreadsheets, and local JSON files, it becomes hard to tell which is the latest version.  
+Additionally, if you want to repurpose them for a different public channel, formatting costs are incurred every time.
 
-This application centralizes introduction information into `repos.json`, unifying the starting point for reuse. This makes it easier to link to future site generation or data publication, and also to incorporate into backup operations.
+This application consolidates introductory information into `repos.json`, centralizing the starting point for reuse.  
+This makes it easier to connect to future site generation or data publication, and to integrate into backup operations.
 
-### Challenge 5: Organizing introduction texts often gets postponed.
+### Challenge 5. Organizing descriptions tends to be postponed.
 
-The task of opening each repository one by one in a browser to write descriptions is cumbersome, and introduction texts tend to be postponed.
+The task of opening each repository one by one in a browser to write descriptions is cumbersome, leading to descriptions often being put off.
 
-This application is a TUI well-suited for 'organizing short descriptions one after another while viewing a list', thus reducing the cost of maintaining introduction texts. As a result, it becomes easier to catch up with introductions after creating a repository.
+This application is a TUI optimized for "quickly refining short descriptions while viewing a list," thereby reducing the effort required for description maintenance.  
+As a result, it becomes easier to ensure that descriptions are kept up-to-date after a repository is created.
 
 ## Summary
 
-`own-repos-curator` is an application designed to transform your public repositories on GitHub from a 'list of merely existing items' into a 'list that can be introduced to others'.
+`own-repos-curator` is an application designed to transform your public repositories on GitHub from a "mere list of existing projects" into a "list ready to be showcased to others."
 
-Its uniqueness lies in the fact that it integrates GitHub synchronization, description editing, tagging, grouping, and JSON asset creation into a single workflow, without separating them. The role of this application is to streamline the previously scattered, manual process of managing repository introductions into a sustainable form.
+Its uniqueness lies in integrating GitHub synchronization, description editing, tagging, grouping, and JSON asset creation into a single, unified workflow.  
+The role of this application is to streamline the previously manual and scattered process of managing repository introductions into a sustainable workflow.
