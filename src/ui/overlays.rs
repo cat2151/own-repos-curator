@@ -4,8 +4,8 @@ use super::{
     theme,
 };
 use crate::app::{
-    GroupBindingModeState, GroupCatalogState, GroupManagerState, TagBindingModeState,
-    TagCatalogState, TagFilterModeState, TagManagerState,
+    FilterModeFocus, FilterModeState, GroupBindingModeState, GroupCatalogState, GroupManagerState,
+    TagBindingModeState, TagCatalogState, TagManagerState,
 };
 use ratatui::{
     layout::{Constraint, Direction, Flex, Layout, Rect},
@@ -280,37 +280,68 @@ pub(super) fn render_group_binding_mode(
     );
 }
 
-pub(super) fn render_tag_filter_mode(
+pub(super) fn render_filter_mode(
     f: &mut ratatui::Frame,
     area: Rect,
-    state: &TagFilterModeState,
+    state: &FilterModeState,
     catalog: &TagCatalogState,
+    group_catalog: &GroupCatalogState,
 ) {
+    let mode_label = match state.focus {
+        FilterModeFocus::Group => "group",
+        FilterModeFocus::Tag => "tag",
+    };
     let mut lines = vec![
-        Line::from(Span::styled("tag絞り込みモード", theme::popup_title())),
-        Line::from("a-z で候補 ON / A-Z で候補 OFF"),
-        Line::from("Enter で適用 / Esc で取消 / ←→ で page移動"),
+        Line::from(Span::styled(
+            format!("絞り込みモード ({mode_label})"),
+            theme::popup_title(),
+        )),
+        Line::from(match state.focus {
+            FilterModeFocus::Group => "a-z でgroup選択 / A-Zどれでもgroup解除",
+            FilterModeFocus::Tag => "a-z でtag ON / A-Z でtag OFF",
+        }),
+        Line::from(match state.focus {
+            FilterModeFocus::Group => "Ctrl+T でtagへ切替 / Enter適用 / Esc取消 / ←→でpage移動",
+            FilterModeFocus::Tag => "Ctrl+G でgroupへ切替 / Enter適用 / Esc取消 / ←→でpage移動",
+        }),
         Line::from(format!(
             "表示予定repo: {}/{}",
             state.visible_repo_count, state.total_repo_count
         )),
-        Line::from(format!(
-            "tag page: {}/{} (total:{})",
-            catalog.page + 1,
-            catalog.page_count.max(1),
-            catalog.total_tags
-        )),
         Line::from(""),
         Line::from(Span::styled(
-            "現在の絞り込み候補",
+            "現在の絞り込み",
             theme::popup_warning().add_modifier(Modifier::BOLD),
         )),
     ];
 
+    lines.push(Line::from(vec![
+        Span::styled("group: ".to_string(), theme::muted()),
+        Span::styled(
+            state
+                .active_group
+                .clone()
+                .unwrap_or_else(|| "(なし)".to_string()),
+            if state.active_group.is_some() {
+                theme::popup_warning().add_modifier(Modifier::BOLD)
+            } else {
+                theme::popup_soft()
+            },
+        ),
+    ]));
+
+    lines.push(Line::from(Span::styled(
+        "tags:".to_string(),
+        theme::muted(),
+    )));
     if state.active_tags.is_empty() {
-        lines.push(Line::from(Span::styled("(なし)", theme::popup_soft())));
+        lines.push(Line::from(vec![
+            Span::styled("  ".to_string(), theme::muted()),
+            Span::styled("(なし)".to_string(), theme::popup_soft()),
+        ]));
     } else {
         let mut active_tag_spans = Vec::new();
+        active_tag_spans.push(Span::styled("  ".to_string(), theme::muted()));
         for (index, tag) in state.active_tags.iter().enumerate() {
             if index > 0 {
                 active_tag_spans.push(Span::styled(", ", theme::popup_soft()));
@@ -329,28 +360,66 @@ pub(super) fn render_tag_filter_mode(
         theme::popup_warning().add_modifier(Modifier::BOLD),
     )));
 
-    if catalog.entries.is_empty() {
-        lines.push(Line::from(Span::styled(
-            "登録済みtag がまだありません。n で作成できます。",
-            theme::popup_soft(),
-        )));
-    } else {
-        lines.extend(catalog.entries.iter().map(|entry| {
-            let state_label = if entry.filter_active { "ON " } else { "OFF" };
-            let state_style = if entry.filter_active {
-                theme::popup_warning().add_modifier(Modifier::BOLD)
+    match state.focus {
+        FilterModeFocus::Group => {
+            lines.push(Line::from(format!(
+                "group page: {}/{} (total:{})",
+                group_catalog.page + 1,
+                group_catalog.page_count.max(1),
+                group_catalog.total_groups
+            )));
+            if group_catalog.entries.is_empty() {
+                lines.push(Line::from(Span::styled(
+                    "登録済みgroup がまだありません。",
+                    theme::popup_soft(),
+                )));
             } else {
-                theme::popup_soft()
-            };
-            Line::from(vec![
-                Span::styled(
-                    format!("{}/{} ", entry.key, entry.key.to_ascii_uppercase()),
-                    theme::popup_title(),
-                ),
-                Span::styled(format!("[{state_label}] "), state_style),
-                Span::styled(entry.tag.clone(), theme::popup()),
-            ])
-        }));
+                lines.extend(group_catalog.entries.iter().map(|entry| {
+                    let marker = if entry.selected { "[x]" } else { "[ ]" };
+                    let marker_style = if entry.selected {
+                        theme::popup_warning().add_modifier(Modifier::BOLD)
+                    } else {
+                        theme::popup_soft()
+                    };
+                    Line::from(vec![
+                        Span::styled(format!("{} ", entry.key), theme::popup_title()),
+                        Span::styled(format!("{marker} "), marker_style),
+                        Span::styled(entry.group.clone(), theme::popup()),
+                    ])
+                }));
+            }
+        }
+        FilterModeFocus::Tag => {
+            lines.push(Line::from(format!(
+                "tag page: {}/{} (total:{})",
+                catalog.page + 1,
+                catalog.page_count.max(1),
+                catalog.total_tags
+            )));
+            if catalog.entries.is_empty() {
+                lines.push(Line::from(Span::styled(
+                    "登録済みtag がまだありません。n で作成できます。",
+                    theme::popup_soft(),
+                )));
+            } else {
+                lines.extend(catalog.entries.iter().map(|entry| {
+                    let state_label = if entry.filter_active { "ON " } else { "OFF" };
+                    let state_style = if entry.filter_active {
+                        theme::popup_warning().add_modifier(Modifier::BOLD)
+                    } else {
+                        theme::popup_soft()
+                    };
+                    Line::from(vec![
+                        Span::styled(
+                            format!("{}/{} ", entry.key, entry.key.to_ascii_uppercase()),
+                            theme::popup_title(),
+                        ),
+                        Span::styled(format!("[{state_label}] "), state_style),
+                        Span::styled(entry.tag.clone(), theme::popup()),
+                    ])
+                }));
+            }
+        }
     }
 
     let popup_width = popup_width_for_lines(&lines, area, 52, 88);
@@ -358,7 +427,7 @@ pub(super) fn render_tag_filter_mode(
     let popup = centered_popup_rect(area, popup_width, popup_height);
 
     f.render_widget(Clear, popup);
-    let block = theme::popup_block(" Tag Filter ");
+    let block = theme::popup_block(format!(" Filter: {} ", mode_label));
     let inner = block.inner(popup);
     f.render_widget(block, popup);
     f.render_widget(
@@ -371,24 +440,31 @@ pub(super) fn render_tag_filter_mode(
 
 #[cfg(test)]
 mod tests {
-    use super::{render_group_binding_mode, render_tag_filter_mode};
+    use super::{render_filter_mode, render_group_binding_mode};
     use crate::app::{
-        GroupBindingModeState, GroupCatalogEntry, GroupCatalogState, TagCatalogEntry,
-        TagCatalogState, TagFilterModeState,
+        FilterModeFocus, FilterModeState, GroupBindingModeState, GroupCatalogEntry,
+        GroupCatalogState, TagCatalogEntry, TagCatalogState,
     };
     use ratatui::{backend::TestBackend, layout::Rect, Terminal};
 
-    fn render_tag_filter_overlay_text(
+    fn render_filter_overlay_text(
         width: u16,
         height: u16,
-        state: &TagFilterModeState,
+        state: &FilterModeState,
         catalog: &TagCatalogState,
+        group_catalog: &GroupCatalogState,
     ) -> String {
         let backend = TestBackend::new(width, height);
         let mut terminal = Terminal::new(backend).expect("terminal");
         terminal
             .draw(|f| {
-                render_tag_filter_mode(f, Rect::new(0, 0, width, height), state, catalog);
+                render_filter_mode(
+                    f,
+                    Rect::new(0, 0, width, height),
+                    state,
+                    catalog,
+                    group_catalog,
+                );
             })
             .expect("draw");
 
@@ -432,7 +508,9 @@ mod tests {
 
     #[test]
     fn tag_filter_overlay_renders_summary_and_shortcuts() {
-        let state = TagFilterModeState {
+        let state = FilterModeState {
+            focus: FilterModeFocus::Tag,
+            active_group: Some("tools".to_string()),
             active_tags: vec!["rust".to_string()],
             visible_repo_count: 3,
             total_repo_count: 7,
@@ -456,14 +534,76 @@ mod tests {
             active_filter_count: 1,
             filter_mode_active: true,
         };
+        let group_catalog = GroupCatalogState {
+            entries: vec![
+                GroupCatalogEntry {
+                    key: 't',
+                    selected: true,
+                    group: "tools".to_string(),
+                },
+                GroupCatalogEntry {
+                    key: 'w',
+                    selected: false,
+                    group: "web".to_string(),
+                },
+            ],
+            page: 0,
+            page_count: 1,
+            total_groups: 2,
+        };
 
-        let rendered = render_tag_filter_overlay_text(80, 24, &state, &catalog);
+        let rendered = render_filter_overlay_text(80, 24, &state, &catalog, &group_catalog);
 
-        assert!(rendered.contains("Tag Filter"));
+        assert!(rendered.contains("Filter: tag"));
         assert!(rendered.contains("3/7"));
+        assert!(rendered.contains("tools"));
         assert!(rendered.contains("rust"));
         assert!(rendered.contains("r/R"));
         assert!(rendered.contains("[ON ]"));
+    }
+
+    #[test]
+    fn group_filter_overlay_renders_summary_and_shortcuts() {
+        let state = FilterModeState {
+            focus: FilterModeFocus::Group,
+            active_group: Some("web".to_string()),
+            active_tags: vec!["rust".to_string()],
+            visible_repo_count: 2,
+            total_repo_count: 7,
+        };
+        let catalog = TagCatalogState {
+            entries: vec![],
+            page: 0,
+            page_count: 0,
+            total_tags: 0,
+            active_filter_count: 1,
+            filter_mode_active: true,
+        };
+        let group_catalog = GroupCatalogState {
+            entries: vec![
+                GroupCatalogEntry {
+                    key: 't',
+                    selected: false,
+                    group: "tools".to_string(),
+                },
+                GroupCatalogEntry {
+                    key: 'w',
+                    selected: true,
+                    group: "web".to_string(),
+                },
+            ],
+            page: 0,
+            page_count: 1,
+            total_groups: 2,
+        };
+
+        let rendered = render_filter_overlay_text(80, 24, &state, &catalog, &group_catalog);
+
+        assert!(rendered.contains("Filter: group"));
+        assert!(rendered.contains("2/7"));
+        assert!(rendered.contains("Ctrl+T"));
+        assert!(rendered.contains("web"));
+        assert!(rendered.contains("[x]"));
     }
 
     #[test]

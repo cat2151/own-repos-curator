@@ -54,10 +54,19 @@ pub(crate) struct GroupBindingMode {
 }
 
 #[derive(Clone)]
-pub(crate) struct TagFilterMode {
+pub(crate) struct FilterMode {
+    pub(crate) focus: FilterModeFocus,
+    pub(crate) original_group: Option<String>,
+    pub(crate) pending_group: Option<String>,
     pub(crate) original_tags: BTreeSet<String>,
     pub(crate) pending_tags: BTreeSet<String>,
     pub(crate) selected_repo_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FilterModeFocus {
+    Group,
+    Tag,
 }
 
 #[derive(Clone)]
@@ -182,7 +191,9 @@ pub(crate) struct GroupBindingModeState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct TagFilterModeState {
+pub(crate) struct FilterModeState {
+    pub(crate) focus: FilterModeFocus,
+    pub(crate) active_group: Option<String>,
     pub(crate) active_tags: Vec<String>,
     pub(crate) visible_repo_count: usize,
     pub(crate) total_repo_count: usize,

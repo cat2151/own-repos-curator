@@ -4,10 +4,10 @@ use super::{
         sort_repo_indices, summarize_tag_counts, tag_bindings_for_page, tag_page_count,
         tag_shortcut_for_tag,
     },
-    App, GroupBindingModeState, GroupCatalogEntry, GroupCatalogState, GroupManagerEntry,
-    GroupManagerState, SelectedRepoDescState, SelectedRepoTagDetailEntry,
-    SelectedRepoTagDetailState, TagBindingModeState, TagCatalogEntry, TagCatalogState,
-    TagFilterModeState, TagManagerEntry, TagManagerState, TagSummaryEntry,
+    App, FilterModeFocus, FilterModeState, GroupBindingModeState, GroupCatalogEntry,
+    GroupCatalogState, GroupManagerEntry, GroupManagerState, SelectedRepoDescState,
+    SelectedRepoTagDetailEntry, SelectedRepoTagDetailState, TagBindingModeState, TagCatalogEntry,
+    TagCatalogState, TagManagerEntry, TagManagerState, TagSummaryEntry,
 };
 use crate::model::Repo;
 
@@ -18,7 +18,7 @@ impl App {
             .repos
             .iter()
             .enumerate()
-            .filter(|(_, repo)| self.repo_matches_effective_tag_filter(repo))
+            .filter(|(_, repo)| self.repo_matches_effective_filters(repo))
             .map(|(index, _)| index)
             .collect::<Vec<_>>();
         sort_repo_indices(&mut indices, &self.data.repos, self.sort_mode);
@@ -92,7 +92,7 @@ impl App {
             page_count,
             total_tags: registered_tags.len(),
             active_filter_count: active_filter.len(),
-            filter_mode_active: self.tag_filter_mode_active(),
+            filter_mode_active: self.filter_mode_active(),
         }
     }
 
@@ -100,15 +100,20 @@ impl App {
         let registered_groups = self.registered_groups();
         let page_count = group_page_count(registered_groups.len());
         let page = clamp_tag_page(self.registered_group_page, page_count);
-        let selected_group = self
-            .selected_repo_data_index()
-            .map(|index| self.display_group_for_repo_index(index))
-            .unwrap_or_default();
+        let selected_group = if self.group_binding_mode.is_some() {
+            self.selected_repo_data_index()
+                .map(|index| self.display_group_for_repo_index(index))
+        } else {
+            self.active_group_filter()
+        };
         let entries = group_bindings_for_page(registered_groups, page)
             .into_iter()
             .map(|binding| GroupCatalogEntry {
+                selected: selected_group
+                    .as_ref()
+                    .map(|group| binding.group == *group)
+                    .unwrap_or(false),
                 key: binding.key,
-                selected: binding.group == selected_group,
                 group: binding.group,
             })
             .collect();
@@ -180,9 +185,11 @@ impl App {
         })
     }
 
-    pub(crate) fn tag_filter_mode_state(&self) -> Option<TagFilterModeState> {
-        self.tag_filter_mode.as_ref()?;
-        Some(TagFilterModeState {
+    pub(crate) fn filter_mode_state(&self) -> Option<FilterModeState> {
+        let mode = self.filter_mode.as_ref()?;
+        Some(FilterModeState {
+            focus: mode.focus,
+            active_group: self.active_group_filter(),
             active_tags: self.active_tag_filter_tags(),
             visible_repo_count: self.visible_repo_indices().len(),
             total_repo_count: self.data.repos.len(),
@@ -211,8 +218,15 @@ impl App {
         if self.group_binding_mode.is_some() {
             return "a-z:assign Esc:cancel ?:help".to_string();
         }
-        if self.tag_filter_mode_active() {
-            return "a-z:on A-Z:off ←→:page Enter:apply Esc:cancel".to_string();
+        if let Some(mode) = self.filter_mode.as_ref() {
+            return match mode.focus {
+                FilterModeFocus::Group => {
+                    "a-z:group A-Z:clear Ctrl+T:tag ←→:page Enter:apply Esc:cancel".to_string()
+                }
+                FilterModeFocus::Tag => {
+                    "a-z:on A-Z:off Ctrl+G:group ←→:page Enter:apply Esc:cancel".to_string()
+                }
+            };
         }
         if self.tag_manager.is_some() {
             return "q:quit Esc:close".to_string();
@@ -300,7 +314,13 @@ impl App {
             .map(|entry| entry.group)
     }
 
-    fn repo_matches_effective_tag_filter(&self, repo: &Repo) -> bool {
+    fn repo_matches_effective_filters(&self, repo: &Repo) -> bool {
+        if let Some(group_filter) = self.effective_group_filter() {
+            if repo.group != group_filter {
+                return false;
+            }
+        }
+
         let active_filter = self.effective_tag_filter();
         if active_filter.is_empty() {
             return true;

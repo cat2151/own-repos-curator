@@ -69,14 +69,14 @@ impl App {
 
     pub(crate) fn handle_key(&mut self, key: KeyEvent) -> AppEvent {
         self.push_debug_log(format!(
-            "handle_key: code={} tag_input={} group_input={} editor={} tag_binding={} group_binding={} tag_filter={} tag_manager={} group_manager={} help={}",
+            "handle_key: code={} tag_input={} group_input={} editor={} tag_binding={} group_binding={} filter={} tag_manager={} group_manager={} help={}",
             describe_key_code(&key.code),
             self.tag_input.is_some(),
             self.group_input.is_some(),
             self.editor.is_some(),
             self.tag_binding_mode.is_some(),
             self.group_binding_mode.is_some(),
-            self.tag_filter_mode.is_some(),
+            self.filter_mode.is_some(),
             self.tag_manager.is_some(),
             self.group_manager.is_some(),
             self.help_screen.is_some()
@@ -87,7 +87,7 @@ impl App {
             && self.editor.is_none()
             && self.tag_binding_mode.is_none()
             && self.group_binding_mode.is_none()
-            && self.tag_filter_mode.is_none()
+            && self.filter_mode.is_none()
             && is_quit_key(&key)
         {
             return AppEvent::Quit;
@@ -98,7 +98,7 @@ impl App {
             && self.editor.is_none()
             && self.tag_binding_mode.is_none()
             && self.group_binding_mode.is_none()
-            && self.tag_filter_mode.is_none()
+            && self.filter_mode.is_none()
             && is_shift_char(&key, 'l')
         {
             self.toggle_debug_log_pane();
@@ -110,7 +110,7 @@ impl App {
             && self.editor.is_none()
             && self.tag_binding_mode.is_none()
             && self.group_binding_mode.is_none()
-            && self.tag_filter_mode.is_none()
+            && self.filter_mode.is_none()
             && is_shift_char(&key, 'd')
         {
             self.cycle_desc_display_mode();
@@ -153,9 +153,9 @@ impl App {
             return AppEvent::Continue;
         }
 
-        if self.tag_filter_mode.is_some() {
-            self.push_debug_log("route -> handle_tag_filter_mode_key");
-            self.handle_tag_filter_mode_key(key);
+        if self.filter_mode.is_some() {
+            self.push_debug_log("route -> handle_filter_mode_key");
+            self.handle_filter_mode_key(key);
             return AppEvent::Continue;
         }
 
@@ -218,7 +218,7 @@ impl App {
                 AppEvent::Continue
             }
             KeyCode::Char('/') => {
-                self.begin_tag_filter_mode();
+                self.begin_filter_mode();
                 AppEvent::Continue
             }
             KeyCode::Char('j') | KeyCode::Down => {

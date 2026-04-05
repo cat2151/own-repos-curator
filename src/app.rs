@@ -23,11 +23,11 @@ use std::{
 };
 
 pub(crate) use self::state::{
-    EditorField, GroupBinding, GroupBindingMode, GroupBindingModeState, GroupCatalogEntry,
-    GroupCatalogState, GroupInput, GroupInputMode, GroupManager, GroupManagerEntry,
-    GroupManagerState, SelectedRepoDescState, SelectedRepoTagDetailEntry,
-    SelectedRepoTagDetailState, TagBinding, TagBindingMode, TagBindingModeState, TagCatalogEntry,
-    TagCatalogState, TagFilterMode, TagFilterModeState, TagInput, TagInputMode, TagManager,
+    EditorField, FilterMode, FilterModeFocus, FilterModeState, GroupBinding, GroupBindingMode,
+    GroupBindingModeState, GroupCatalogEntry, GroupCatalogState, GroupInput, GroupInputMode,
+    GroupManager, GroupManagerEntry, GroupManagerState, SelectedRepoDescState,
+    SelectedRepoTagDetailEntry, SelectedRepoTagDetailState, TagBinding, TagBindingMode,
+    TagBindingModeState, TagCatalogEntry, TagCatalogState, TagInput, TagInputMode, TagManager,
     TagManagerEntry, TagManagerState, TagSummaryEntry, TextEditor,
 };
 
@@ -110,8 +110,9 @@ pub(crate) struct App {
     pub(crate) group_manager: Option<GroupManager>,
     pub(crate) group_input: Option<GroupInput>,
     pub(crate) group_binding_mode: Option<GroupBindingMode>,
+    pub(crate) group_filter: Option<String>,
     pub(crate) tag_filter: BTreeSet<String>,
-    pub(crate) tag_filter_mode: Option<TagFilterMode>,
+    pub(crate) filter_mode: Option<FilterMode>,
     registered_tag_page: usize,
     registered_group_page: usize,
     sort_mode: SortMode,

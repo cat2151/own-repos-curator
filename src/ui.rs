@@ -13,8 +13,8 @@ use self::{
     input_overlays::{render_group_input, render_tag_input, render_text_editor},
     layout::{left_pane_width, log_pane_height},
     overlays::{
-        render_group_binding_mode, render_group_manager, render_tag_binding_mode,
-        render_tag_filter_mode, render_tag_manager,
+        render_filter_mode, render_group_binding_mode, render_group_manager,
+        render_tag_binding_mode, render_tag_manager,
     },
     panels::{
         render_log_pane, render_selected_repo_desc, render_selected_repo_tag_detail,
@@ -47,7 +47,7 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     let help_screen = app.help_screen();
     let tag_binding_mode = app.tag_binding_mode_state();
     let group_binding_mode = app.group_binding_mode_state();
-    let tag_filter_mode = app.tag_filter_mode_state();
+    let filter_mode = app.filter_mode_state();
 
     let visible_indices = app.visible_repo_indices();
     let registered_groups = app.registered_groups().to_vec();
@@ -67,7 +67,7 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     let desc_display_mode = app.desc_display_mode();
     let debug_log_expanded = app.debug_log_expanded();
     let selected_repo_desc = app.selected_repo_desc_state();
-    let tag_summary_filtered = app.has_effective_tag_filter();
+    let tag_summary_filtered = app.has_effective_filter();
 
     let screen_chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -207,8 +207,14 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
         render_tag_binding_mode(f, screen_chunks[0], tag_binding_mode);
     } else if let Some(group_binding_mode) = group_binding_mode.as_ref() {
         render_group_binding_mode(f, screen_chunks[0], group_binding_mode, &group_catalog);
-    } else if let Some(tag_filter_mode) = tag_filter_mode.as_ref() {
-        render_tag_filter_mode(f, screen_chunks[0], tag_filter_mode, &tag_catalog);
+    } else if let Some(filter_mode) = filter_mode.as_ref() {
+        render_filter_mode(
+            f,
+            screen_chunks[0],
+            filter_mode,
+            &tag_catalog,
+            &group_catalog,
+        );
     }
 
     if matches!(help_screen, Some(HelpScreen::TagBinding)) {

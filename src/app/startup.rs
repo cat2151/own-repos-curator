@@ -1,6 +1,6 @@
 use super::{
     background::StartupJobs, App, DescDisplayMode, GroupBindingMode, GroupInput, GroupManager,
-    HelpScreen, TagBindingMode, TagFilterMode, TagInput, TagManager, TextEditor,
+    HelpScreen, TagBindingMode, TagInput, TagManager, TextEditor,
 };
 use crate::model::RepoData;
 use anyhow::Result;
@@ -23,8 +23,9 @@ pub(super) fn load_app() -> Result<App> {
         group_manager: None::<GroupManager>,
         group_input: None::<GroupInput>,
         group_binding_mode: None::<GroupBindingMode>,
+        group_filter: None,
         tag_filter: BTreeSet::new(),
-        tag_filter_mode: None::<TagFilterMode>,
+        filter_mode: None,
         registered_tag_page: 0,
         registered_group_page: 0,
         sort_mode: super::SortMode::Created,
