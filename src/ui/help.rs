@@ -98,6 +98,7 @@ fn main_help_lines() -> Vec<Line<'static>> {
         Line::from(" Shift+G: group manager"),
         Line::from(" Shift+L: debug log 1行/50% 切替"),
         Line::from(" Shift+D: desc 右下/左1行/左1行+3行 循環"),
+        Line::from(" Shift+P: repos.json を手動commit/push"),
         Line::from(" ← / →  : 登録済みtag page 切替"),
         Line::from(" e      : 1行説明を編集"),
         Line::from(" l      : 3行説明を編集"),
@@ -396,6 +397,7 @@ mod tests {
         assert!(lines
             .iter()
             .any(|line| line.contains("tag紐付けモードに入る")));
+        assert!(lines.iter().any(|line| line.contains("手動commit/push")));
         assert!(lines
             .iter()
             .any(|line| line.contains("絞り込みモードに入る")));

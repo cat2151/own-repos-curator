@@ -73,7 +73,7 @@ Its strength lies not in the flexibility of a general-purpose tool, but in its s
 
 Introduction data is saved to `repos.json`. Therefore, it's easy to repurpose the data for GitHub Pages, static sites, other tools, or generation scripts in the future, and it's not confined within the application.
 
-Furthermore, this repository allows you to copy the JSON to locally related repositories or, if configured, automatically push it to a backup repository. This setup ensures that creating descriptions isn't an end in itself, but rather facilitates cultivating them as public assets.
+Furthermore, this repository allows you to copy the JSON to locally related repositories or, if configured, automatically push it to a backup repository on startup, or manually commit/push it from the TUI with `Shift+P`. This setup ensures that creating descriptions isn't an end in itself, but rather facilitates cultivating them as public assets.
 
 ### 4. A TUI designed for a large volume of small edits.
 

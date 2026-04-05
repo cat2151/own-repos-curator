@@ -203,6 +203,10 @@ impl App {
             self.toggle_sort_mode();
             return AppEvent::Continue;
         }
+        if is_shift_char(&key, 'p') {
+            self.start_manual_json_push();
+            return AppEvent::Continue;
+        }
 
         match key.code {
             KeyCode::Char('?') => {

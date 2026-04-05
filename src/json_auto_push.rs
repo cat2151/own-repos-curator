@@ -15,6 +15,12 @@ use std::{
 
 const SNAPSHOT_FILE_NAME: &str = "repos.json";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum JsonPushTrigger {
+    Automatic,
+    Manual,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AutoPushOutcome {
     Disabled,
@@ -36,12 +42,27 @@ pub fn maybe_push_json_snapshot(
     data: &mut RepoData,
     config: &AppConfig,
 ) -> Result<AutoPushOutcome> {
+    push_json_snapshot(data, config, JsonPushTrigger::Automatic)
+}
+
+pub fn push_json_snapshot_manually(
+    data: &mut RepoData,
+    config: &AppConfig,
+) -> Result<AutoPushOutcome> {
+    push_json_snapshot(data, config, JsonPushTrigger::Manual)
+}
+
+fn push_json_snapshot(
+    data: &mut RepoData,
+    config: &AppConfig,
+    trigger: JsonPushTrigger,
+) -> Result<AutoPushOutcome> {
     let Some(repo) = config.json_auto_push.repo.as_ref() else {
         return Ok(AutoPushOutcome::Disabled);
     };
 
     let today = Utc::now().date_naive().to_string();
-    if data.meta.last_json_commit_push_date == today {
+    if should_skip_today(&data.meta.last_json_commit_push_date, &today, trigger) {
         return Ok(AutoPushOutcome::SkippedToday { date: today });
     }
 
@@ -51,6 +72,10 @@ pub fn maybe_push_json_snapshot(
     let outcome = push_snapshot(&snapshot, repo, &today)?;
     data.meta.last_json_commit_push_date = today;
     Ok(outcome)
+}
+
+fn should_skip_today(last_pushed_date: &str, today: &str, trigger: JsonPushTrigger) -> bool {
+    matches!(trigger, JsonPushTrigger::Automatic) && last_pushed_date == today
 }
 
 fn push_snapshot(
@@ -154,7 +179,7 @@ fn ensure_clean_worktree(repo_dir: &Path) -> Result<()> {
     }
 
     Err(anyhow!(
-        "managed backup repo has local changes; refusing automatic push"
+        "managed backup repo has local changes; refusing JSON push"
     ))
 }
 
@@ -253,7 +278,7 @@ fn normalize_origin_url(value: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{normalize_origin_url, AutoPushOutcome};
+    use super::{normalize_origin_url, should_skip_today, AutoPushOutcome, JsonPushTrigger};
     use crate::{
         config::{AppConfig, GitHubRepoRef, JsonAutoPushConfig},
         model::{Meta, RepoData},
@@ -282,6 +307,13 @@ mod tests {
             super::maybe_push_json_snapshot(&mut data, &config).expect("push should skip");
 
         assert_eq!(outcome, AutoPushOutcome::SkippedToday { date: today });
+    }
+
+    #[test]
+    fn manual_push_bypasses_today_skip_guard() {
+        let today = chrono::Utc::now().date_naive().to_string();
+
+        assert!(!should_skip_today(&today, &today, JsonPushTrigger::Manual));
     }
 
     #[test]
