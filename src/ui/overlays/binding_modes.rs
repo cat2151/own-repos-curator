@@ -31,7 +31,7 @@ pub(in crate::ui) fn render_tag_binding_mode(
     lines.extend(
         tag_binding_mode_keybind_lines()
             .into_iter()
-            .map(|line: Line<'static>| line.style(theme::popup_soft())),
+            .map(|line| line.style(theme::popup_soft())),
     );
     lines.push(Line::from(""));
     lines.push(Line::from(format!("現在のtag数: {}", state.pending_count)));
@@ -93,7 +93,7 @@ pub(in crate::ui) fn render_group_binding_mode(
     lines.extend(
         group_binding_mode_keybind_lines()
             .into_iter()
-            .map(|line: Line<'static>| line.style(theme::popup_soft())),
+            .map(|line| line.style(theme::popup_soft())),
     );
     lines.push(Line::from(""));
     lines.push(Line::from(format!("現在: {}", state.original_group)));
