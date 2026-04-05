@@ -66,14 +66,13 @@ mod tests {
     };
     use std::{
         path::PathBuf,
-        time::{SystemTime, UNIX_EPOCH},
+        sync::atomic::{AtomicU64, Ordering},
     };
 
+    static TEST_HISTORY_PATH_SEQ: AtomicU64 = AtomicU64::new(0);
+
     fn unique_test_history_path() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
+        let unique = TEST_HISTORY_PATH_SEQ.fetch_add(1, Ordering::Relaxed);
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join(".test-local-data")
             .join(format!("missing-history-{unique}"))
