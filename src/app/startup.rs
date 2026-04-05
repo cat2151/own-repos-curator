@@ -21,6 +21,7 @@ pub(super) fn load_app() -> Result<App> {
     if let Some(error) = history_load_error {
         app.push_debug_log(format!("app history load fallback: {error}"));
     }
+    app.start_background_startup();
     Ok(app)
 }
 
@@ -52,7 +53,6 @@ fn build_app(data: RepoData, data_path: PathBuf, history: AppHistory) -> App {
     };
 
     app.push_debug_log("app loaded");
-    app.start_background_startup();
     app.sync_selection();
     app
 }
@@ -64,7 +64,21 @@ mod tests {
         app::{AppHistory, DescDisplayMode},
         model::RepoData,
     };
-    use std::path::{Path, PathBuf};
+    use std::{
+        path::PathBuf,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    fn unique_missing_history_path() -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join(".test-local-data")
+            .join(format!("missing-history-{unique}"))
+            .join("history.json")
+    }
 
     #[test]
     fn build_app_restores_desc_display_mode_from_history() {
@@ -82,7 +96,7 @@ mod tests {
     #[test]
     fn missing_history_defaults_to_right_pane_mode() {
         let history =
-            AppHistory::load_from_path(Path::new("missing-history.json")).expect("history load");
+            AppHistory::load_from_path(&unique_missing_history_path()).expect("history load");
 
         assert_eq!(history.desc_display_mode, DescDisplayMode::RightPane);
     }
