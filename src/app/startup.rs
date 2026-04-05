@@ -69,7 +69,7 @@ mod tests {
         time::{SystemTime, UNIX_EPOCH},
     };
 
-    fn unique_missing_history_path() -> PathBuf {
+    fn unique_test_history_path() -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn missing_history_defaults_to_right_pane_mode() {
         let history =
-            AppHistory::load_from_path(&unique_missing_history_path()).expect("history load");
+            AppHistory::load_from_path(&unique_test_history_path()).expect("history load");
 
         assert_eq!(history.desc_display_mode, DescDisplayMode::RightPane);
     }
