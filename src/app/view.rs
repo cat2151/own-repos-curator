@@ -223,6 +223,14 @@ impl App {
         "q:quit ?:help".to_string()
     }
 
+    pub(crate) fn rendered_status_message(&self) -> String {
+        match self.background_status_message() {
+            Some(background) if self.status_message.is_empty() => background,
+            Some(background) => format!("{} | {}", self.status_message, background),
+            None => self.status_message.clone(),
+        }
+    }
+
     pub(crate) fn selected_repo_tag_detail_state(&self) -> Option<SelectedRepoTagDetailState> {
         let repo = self.selected_repo_for_display()?;
         let registered_tags = self.registered_tags();

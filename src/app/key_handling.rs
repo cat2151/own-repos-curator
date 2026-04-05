@@ -5,7 +5,9 @@ use super::{
 use crossterm::event::{KeyCode, KeyEvent};
 
 impl App {
-    pub(crate) fn tick(&mut self) {}
+    pub(crate) fn tick(&mut self) {
+        self.tick_background_jobs();
+    }
 
     pub(crate) fn help_screen(&self) -> Option<HelpScreen> {
         self.help_screen

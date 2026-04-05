@@ -111,6 +111,7 @@ pub(super) fn app_with_registered_tags_and_groups(
         debug_log_expanded: false,
         debug_log: VecDeque::new(),
         debug_log_seq: 0,
+        startup_jobs: super::super::background::StartupJobs::idle(),
     };
     app.sync_selection();
     app

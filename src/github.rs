@@ -10,25 +10,29 @@ pub struct SyncSummary {
     pub updated: usize,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct GithubRepo {
-    name: String,
-    created_at: chrono::DateTime<Utc>,
-    updated_at: chrono::DateTime<Utc>,
-    description: Option<String>,
+#[derive(Debug, Clone)]
+pub struct FetchedRepo {
+    pub(crate) name: String,
+    pub(crate) created_at: chrono::DateTime<Utc>,
+    pub(crate) updated_at: chrono::DateTime<Utc>,
+    pub(crate) github_desc: String,
 }
 
 pub fn sync_repo_data(data: &mut RepoData) -> Result<SyncSummary> {
-    let owner = current_login()?;
-    let fetched = fetch_repos(&owner)?;
+    let fetched = fetch_remote_repos()?;
+    Ok(apply_fetched_repos(data, fetched))
+}
 
+pub fn fetch_remote_repos() -> Result<Vec<FetchedRepo>> {
+    let owner = current_login()?;
+    fetch_repos(&owner)
+}
+
+pub fn apply_fetched_repos(data: &mut RepoData, fetched: Vec<FetchedRepo>) -> SyncSummary {
     let mut added = 0;
     let mut updated = 0;
 
     for repo in fetched {
-        let github_desc = repo.description.unwrap_or_default();
-
         if let Some(existing) = data.repos.iter_mut().find(|item| item.name == repo.name) {
             let mut changed = false;
             if existing.created_at != repo.created_at {
@@ -39,8 +43,8 @@ pub fn sync_repo_data(data: &mut RepoData) -> Result<SyncSummary> {
                 existing.updated_at = Some(repo.updated_at);
                 changed = true;
             }
-            if existing.github_desc != github_desc {
-                existing.github_desc = github_desc;
+            if existing.github_desc != repo.github_desc {
+                existing.github_desc = repo.github_desc;
                 changed = true;
             }
             if changed {
@@ -53,7 +57,7 @@ pub fn sync_repo_data(data: &mut RepoData) -> Result<SyncSummary> {
             name: repo.name,
             created_at: repo.created_at,
             updated_at: Some(repo.updated_at),
-            github_desc,
+            github_desc: repo.github_desc,
             desc_short: String::new(),
             desc_long: String::new(),
             group: DEFAULT_GROUP_NAME.to_string(),
@@ -66,7 +70,7 @@ pub fn sync_repo_data(data: &mut RepoData) -> Result<SyncSummary> {
     data.meta.github_desc_updated_at = Utc::now().date_naive().to_string();
     data.sort_repos();
 
-    Ok(SyncSummary { added, updated })
+    SyncSummary { added, updated }
 }
 
 fn current_login() -> Result<String> {
@@ -94,7 +98,16 @@ fn current_login() -> Result<String> {
     Ok(login)
 }
 
-fn fetch_repos(owner: &str) -> Result<Vec<GithubRepo>> {
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GithubRepo {
+    name: String,
+    created_at: chrono::DateTime<Utc>,
+    updated_at: chrono::DateTime<Utc>,
+    description: Option<String>,
+}
+
+fn fetch_repos(owner: &str) -> Result<Vec<FetchedRepo>> {
     let output = Command::new("gh")
         .args([
             "repo",
@@ -119,7 +132,15 @@ fn fetch_repos(owner: &str) -> Result<Vec<GithubRepo>> {
         ));
     }
 
-    let repos =
+    let repos: Vec<GithubRepo> =
         serde_json::from_slice(&output.stdout).context("failed to parse gh repo list JSON")?;
-    Ok(repos)
+    Ok(repos
+        .into_iter()
+        .map(|repo| FetchedRepo {
+            name: repo.name,
+            created_at: repo.created_at,
+            updated_at: repo.updated_at,
+            github_desc: repo.description.unwrap_or_default(),
+        })
+        .collect())
 }

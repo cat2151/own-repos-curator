@@ -18,7 +18,13 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use main_cli::{Cli, Subcommand};
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
+    text::Line,
+    widgets::{Block, Paragraph},
+    Terminal,
+};
 use self_update::{build_commit_hash, run_self_update};
 use std::{io, time::Duration};
 
@@ -43,20 +49,24 @@ fn main() -> Result<()> {
         None => {}
     }
 
-    let mut app = App::load()?;
-
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let result = run_app(&mut terminal, &mut app);
+    let result = run_terminal_session(&mut terminal);
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
     result
+}
+
+fn run_terminal_session(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
+    terminal.draw(render_boot_screen)?;
+    let mut app = App::load()?;
+    run_app(terminal, &mut app)
 }
 
 fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> Result<()> {
@@ -79,4 +89,20 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App)
     }
 
     Ok(())
+}
+
+fn render_boot_screen(frame: &mut ratatui::Frame) {
+    let area = frame.area();
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(45),
+            Constraint::Length(3),
+            Constraint::Percentage(52),
+        ])
+        .split(area);
+
+    let message = Paragraph::new(Line::from("own-repos-curator を起動中..."))
+        .block(Block::bordered().title(" Loading "));
+    frame.render_widget(message, chunks[1]);
 }

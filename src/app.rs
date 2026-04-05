@@ -1,3 +1,4 @@
+mod background;
 mod editor;
 mod filter;
 mod groups;
@@ -118,6 +119,7 @@ pub(crate) struct App {
     debug_log_expanded: bool,
     debug_log: VecDeque<String>,
     debug_log_seq: usize,
+    startup_jobs: background::StartupJobs,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

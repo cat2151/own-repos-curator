@@ -56,7 +56,7 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     let tag_catalog = app.tag_catalog_state();
     let tag_summary = app.tag_summary_entries();
     let selected_repo_tag_detail = app.selected_repo_tag_detail_state();
-    let status_message = app.status_message.clone();
+    let status_message = app.rendered_status_message();
     let bottom_hint = app.bottom_hint();
     let tag_filter_title = app.tag_filter_title_label();
     let tag_manager = app.tag_manager_state();
