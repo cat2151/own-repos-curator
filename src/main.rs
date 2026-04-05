@@ -90,6 +90,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App)
         }
     }
 
+    app.persist_history()?;
     Ok(())
 }
 

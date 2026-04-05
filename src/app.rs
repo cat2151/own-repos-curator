@@ -17,8 +17,10 @@ mod tests;
 use crate::model::RepoData;
 use anyhow::Result;
 use ratatui::widgets::ListState;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeSet, VecDeque},
+    fs,
     path::PathBuf,
 };
 
@@ -51,8 +53,10 @@ pub(crate) enum HelpScreen {
     Filter,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum DescDisplayMode {
+    #[default]
     RightPane,
     LeftShort,
     LeftShortAndLong,
@@ -95,6 +99,36 @@ impl DescDisplayMode {
                 "description display mode: left pane short and long descriptions"
             }
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub(crate) struct AppHistory {
+    #[serde(default)]
+    pub(crate) desc_display_mode: DescDisplayMode,
+}
+
+impl AppHistory {
+    pub(crate) fn load_or_default_from_path(path: &std::path::Path) -> Self {
+        fs::read_to_string(path)
+            .ok()
+            .and_then(|raw| serde_json::from_str(&raw).ok())
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn write_to_path(&self, path: &std::path::Path) -> Result<()> {
+        use anyhow::Context;
+
+        let parent = path
+            .parent()
+            .with_context(|| format!("failed to resolve parent directory: {}", path.display()))?;
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create history directory: {}", parent.display()))?;
+
+        let json = serde_json::to_string_pretty(self).context("failed to serialize app history")?;
+        fs::write(path, &json)
+            .with_context(|| format!("failed to write app history: {}", path.display()))?;
+        Ok(())
     }
 }
 
