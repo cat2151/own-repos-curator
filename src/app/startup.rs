@@ -12,8 +12,16 @@ use std::{
 
 pub(super) fn load_app() -> Result<App> {
     let (data, data_path) = RepoData::load_or_init()?;
-    let history = AppHistory::load_or_default_from_path(&crate::paths::history_file_path()?);
-    Ok(build_app(data, data_path, history))
+    let history_path = crate::paths::history_file_path()?;
+    let (history, history_load_error) = match AppHistory::load_from_path(&history_path) {
+        Ok(history) => (history, None),
+        Err(error) => (AppHistory::default(), Some(error.to_string())),
+    };
+    let mut app = build_app(data, data_path, history);
+    if let Some(error) = history_load_error {
+        app.push_debug_log(format!("app history load fallback: {error}"));
+    }
+    Ok(app)
 }
 
 fn build_app(data: RepoData, data_path: PathBuf, history: AppHistory) -> App {
@@ -56,7 +64,7 @@ mod tests {
         app::{AppHistory, DescDisplayMode},
         model::RepoData,
     };
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn build_app_restores_desc_display_mode_from_history() {
@@ -69,5 +77,13 @@ mod tests {
         );
 
         assert_eq!(app.desc_display_mode(), DescDisplayMode::LeftShortAndLong);
+    }
+
+    #[test]
+    fn missing_history_defaults_to_right_pane_mode() {
+        let history =
+            AppHistory::load_from_path(Path::new("missing-history.json")).expect("history load");
+
+        assert_eq!(history.desc_display_mode, DescDisplayMode::RightPane);
     }
 }

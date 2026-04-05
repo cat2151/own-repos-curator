@@ -109,11 +109,17 @@ pub(crate) struct AppHistory {
 }
 
 impl AppHistory {
-    pub(crate) fn load_or_default_from_path(path: &std::path::Path) -> Self {
-        fs::read_to_string(path)
-            .ok()
-            .and_then(|raw| serde_json::from_str(&raw).ok())
-            .unwrap_or_default()
+    pub(crate) fn load_from_path(path: &std::path::Path) -> Result<Self> {
+        use anyhow::Context;
+
+        if !path.exists() {
+            return Ok(Self::default());
+        }
+
+        let raw = fs::read_to_string(path)
+            .with_context(|| format!("failed to read app history: {}", path.display()))?;
+        serde_json::from_str(&raw)
+            .with_context(|| format!("failed to parse app history: {}", path.display()))
     }
 
     pub(crate) fn write_to_path(&self, path: &std::path::Path) -> Result<()> {
