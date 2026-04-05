@@ -9,14 +9,22 @@ fn main() {
         .unwrap_or_else(|| "unknown".to_string());
     println!("cargo:rustc-env=BUILD_COMMIT_HASH={hash}");
 
-    println!("cargo:rerun-if-changed=.git/HEAD");
+    const GIT_HEAD_PATH: &str = ".git/HEAD";
+    const GIT_PACKED_REFS_PATH: &str = ".git/packed-refs";
 
-    if let Ok(head) = std::fs::read_to_string(".git/HEAD") {
+    println!("cargo:rerun-if-changed={GIT_HEAD_PATH}");
+
+    if let Ok(head) = std::fs::read_to_string(GIT_HEAD_PATH) {
         let head = head.trim();
         if let Some(ref_path) = head.strip_prefix("ref: ") {
-            println!("cargo:rerun-if-changed=.git/{ref_path}");
+            let ref_path = format!(".git/{ref_path}");
+            if std::path::Path::new(&ref_path).exists() {
+                println!("cargo:rerun-if-changed={ref_path}");
+            }
         }
     }
 
-    println!("cargo:rerun-if-changed=.git/packed-refs");
+    if std::path::Path::new(GIT_PACKED_REFS_PATH).exists() {
+        println!("cargo:rerun-if-changed={GIT_PACKED_REFS_PATH}");
+    }
 }
