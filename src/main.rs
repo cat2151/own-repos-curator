@@ -1,5 +1,6 @@
 mod app;
 mod config;
+mod data_link;
 mod github;
 mod json_auto_push;
 mod local_json_sync;

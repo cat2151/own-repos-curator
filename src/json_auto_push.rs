@@ -1,5 +1,6 @@
 use crate::{
     config::{AppConfig, GitHubRepoRef},
+    data_link::spawn_hatena_sync,
     model::RepoData,
     paths::managed_repo_dir_path,
 };
@@ -79,6 +80,7 @@ fn push_snapshot(
     ensure_only_snapshot_is_staged(&repo_dir, snapshot_file)?;
 
     let message = format!("chore: update {SNAPSHOT_FILE_NAME} ({today})");
+    spawn_hatena_sync()?;
     git(&repo_dir, ["commit", "-m", &message])?;
     git(&repo_dir, ["push"])?;
     let commit_id = git_stdout(&repo_dir, ["rev-parse", "HEAD"])?;
