@@ -7,6 +7,7 @@ mod local_json_sync;
 mod main_cli;
 mod model;
 mod paths;
+mod repo_url_cache;
 mod self_update;
 mod ui;
 

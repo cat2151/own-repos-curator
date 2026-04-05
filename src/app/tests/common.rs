@@ -13,6 +13,7 @@ use std::{
 pub(super) fn repo(name: &str, created_at: &str, updated_at: Option<&str>) -> Repo {
     Repo {
         name: name.to_string(),
+        url: String::new(),
         created_at: parse_datetime(created_at),
         updated_at: updated_at.map(parse_datetime),
         github_desc: String::new(),
@@ -86,6 +87,7 @@ pub(super) fn app_with_registered_tags_and_groups(
             meta: Meta {
                 github_desc_updated_at: String::new(),
                 last_json_commit_push_date: String::new(),
+                owner: String::new(),
             },
             registered_tags,
             registered_groups,

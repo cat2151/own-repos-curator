@@ -160,8 +160,9 @@ fn ensure_clean_worktree(repo_dir: &Path) -> Result<()> {
 
 fn write_snapshot(repo_dir: &Path, snapshot: &RepoData) -> Result<PathBuf> {
     let snapshot_path = repo_dir.join(SNAPSHOT_FILE_NAME);
-    let json =
-        serde_json::to_string_pretty(snapshot).context("failed to serialize JSON snapshot")?;
+    let json = snapshot
+        .to_pretty_json()
+        .context("failed to serialize JSON snapshot")?;
     fs::write(&snapshot_path, json)
         .with_context(|| format!("failed to write snapshot: {}", snapshot_path.display()))?;
     Ok(snapshot_path)
@@ -265,6 +266,7 @@ mod tests {
             meta: Meta {
                 github_desc_updated_at: String::new(),
                 last_json_commit_push_date: today.clone(),
+                owner: String::new(),
             },
             registered_tags: Vec::new(),
             registered_groups: vec!["ungrouped".to_string()],

@@ -55,6 +55,7 @@ pub fn apply_fetched_repos(data: &mut RepoData, fetched: Vec<FetchedRepo>) -> Sy
 
         data.repos.push(Repo {
             name: repo.name,
+            url: String::new(),
             created_at: repo.created_at,
             updated_at: Some(repo.updated_at),
             github_desc: repo.github_desc,
