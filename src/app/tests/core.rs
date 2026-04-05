@@ -1,8 +1,10 @@
 use super::super::{
     background::StartupJobs,
-    helpers::{summarize_tag_counts, tag_bindings_for_page, tag_page_count, tag_shortcut_for_tag},
-    AppEvent, DescDisplayMode, EditorField, GroupInputMode, SortMode, TagInputMode,
-    TagSummaryEntry, TAG_KEYS,
+    helpers::{
+        summarize_group_counts, tag_bindings_for_page, tag_page_count, tag_shortcut_for_tag,
+    },
+    AppEvent, DescDisplayMode, EditorField, GroupInputMode, GroupSummaryEntry, SortMode,
+    TagInputMode, TAG_KEYS,
 };
 use super::common::{
     app_with_registered_tags, app_with_repos, cleanup_app_file, ctrl_key, key, parse_datetime,
@@ -89,26 +91,24 @@ fn tag_bindings_fall_back_to_next_available_letter_when_initials_collide() {
 }
 
 #[test]
-fn summarize_tag_counts_aggregates_and_sorts_by_count_then_name() {
-    let repo_a = vec!["rust".to_string(), "tui".to_string()];
-    let repo_b = vec!["rust".to_string(), "obsidian plugin".to_string()];
-    let repo_c = vec!["obsidian plugin".to_string()];
+fn summarize_group_counts_aggregates_and_sorts_by_count_then_name() {
+    let groups = ["tools", "apps", "tools", "web", "apps"];
 
-    let summary = summarize_tag_counts([repo_a.as_slice(), repo_b.as_slice(), repo_c.as_slice()]);
+    let summary = summarize_group_counts(groups);
 
     assert_eq!(
         summary,
         vec![
-            TagSummaryEntry {
-                tag: "obsidian plugin".to_string(),
+            GroupSummaryEntry {
+                group: "apps".to_string(),
                 count: 2,
             },
-            TagSummaryEntry {
-                tag: "rust".to_string(),
+            GroupSummaryEntry {
+                group: "tools".to_string(),
                 count: 2,
             },
-            TagSummaryEntry {
-                tag: "tui".to_string(),
+            GroupSummaryEntry {
+                group: "web".to_string(),
                 count: 1,
             },
         ]
@@ -116,8 +116,37 @@ fn summarize_tag_counts_aggregates_and_sorts_by_count_then_name() {
 }
 
 #[test]
-fn summarize_tag_counts_returns_empty_for_empty_input() {
-    let summary = summarize_tag_counts(std::iter::empty::<&[String]>());
+fn summarize_group_counts_places_etc_and_stub_at_bottom() {
+    let groups = ["stub", "tools", "apps", "etc", "stub", "etc", "tools"];
+
+    let summary = summarize_group_counts(groups);
+
+    assert_eq!(
+        summary,
+        vec![
+            GroupSummaryEntry {
+                group: "tools".to_string(),
+                count: 2,
+            },
+            GroupSummaryEntry {
+                group: "apps".to_string(),
+                count: 1,
+            },
+            GroupSummaryEntry {
+                group: "etc".to_string(),
+                count: 2,
+            },
+            GroupSummaryEntry {
+                group: "stub".to_string(),
+                count: 2,
+            },
+        ]
+    );
+}
+
+#[test]
+fn summarize_group_counts_returns_empty_for_empty_input() {
+    let summary = summarize_group_counts(std::iter::empty::<&str>());
 
     assert!(summary.is_empty());
 }

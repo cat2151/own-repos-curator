@@ -19,8 +19,8 @@ use self::{
         render_tag_binding_mode, render_tag_manager,
     },
     panels::{
-        render_log_pane, render_selected_repo_desc, render_selected_repo_tag_detail,
-        render_tag_catalog, render_tag_summary,
+        render_group_summary, render_log_pane, render_selected_repo_desc,
+        render_selected_repo_tag_detail, render_tag_catalog,
     },
     tag_colors::span_for_tag,
 };
@@ -56,7 +56,7 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     let registered_tags = app.data.registered_tags.clone();
     let group_catalog = app.group_catalog_state();
     let tag_catalog = app.tag_catalog_state();
-    let tag_summary = app.tag_summary_entries();
+    let group_summary = app.group_summary_entries();
     let selected_repo_tag_detail = app.selected_repo_tag_detail_state();
     let status_message = app.rendered_status_message();
     let bottom_hint = app.bottom_hint();
@@ -69,7 +69,7 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     let desc_display_mode = app.desc_display_mode();
     let debug_log_expanded = app.debug_log_expanded();
     let selected_repo_desc = app.selected_repo_desc_state();
-    let tag_summary_filtered = app.has_effective_filter();
+    let group_summary_filtered = app.has_effective_filter();
 
     let screen_chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -143,12 +143,12 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
             .split(chunks[1]);
 
         render_tag_catalog(f, right_chunks[0], &tag_catalog, &registered_tags);
-        render_tag_summary(
+        render_group_summary(
             f,
             right_chunks[1],
-            &tag_summary,
-            &registered_tags,
-            tag_summary_filtered,
+            &group_summary,
+            &registered_groups,
+            group_summary_filtered,
         );
         render_selected_repo_tag_detail(
             f,
@@ -168,12 +168,12 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
             .split(chunks[1]);
 
         render_tag_catalog(f, right_chunks[0], &tag_catalog, &registered_tags);
-        render_tag_summary(
+        render_group_summary(
             f,
             right_chunks[1],
-            &tag_summary,
-            &registered_tags,
-            tag_summary_filtered,
+            &group_summary,
+            &registered_groups,
+            group_summary_filtered,
         );
         render_selected_repo_tag_detail(
             f,

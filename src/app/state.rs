@@ -200,8 +200,8 @@ pub(crate) struct FilterModeState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct TagSummaryEntry {
-    pub(crate) tag: String,
+pub(crate) struct GroupSummaryEntry {
+    pub(crate) group: String,
     pub(crate) count: usize,
 }
 

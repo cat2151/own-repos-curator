@@ -1,4 +1,4 @@
-use super::{GroupBinding, SortMode, TagBinding, TagSummaryEntry, TAG_KEYS};
+use super::{GroupBinding, GroupSummaryEntry, SortMode, TagBinding, TAG_KEYS};
 use crate::model::Repo;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::{
@@ -106,28 +106,34 @@ fn tag_shortcut_candidates(tag: &str) -> impl Iterator<Item = char> {
     candidates.into_iter()
 }
 
-pub(crate) fn summarize_tag_counts<'a, I>(tag_lists: I) -> Vec<TagSummaryEntry>
+pub(crate) fn summarize_group_counts<'a, I>(groups: I) -> Vec<GroupSummaryEntry>
 where
-    I: IntoIterator<Item = &'a [String]>,
+    I: IntoIterator<Item = &'a str>,
 {
     let mut counts = BTreeMap::new();
-    for tags in tag_lists {
-        for tag in tags {
-            *counts.entry(tag.clone()).or_insert(0usize) += 1;
-        }
+    for group in groups {
+        *counts.entry(group.to_string()).or_insert(0usize) += 1;
     }
 
     let mut entries = counts
         .into_iter()
-        .map(|(tag, count)| TagSummaryEntry { tag, count })
+        .map(|(group, count)| GroupSummaryEntry { group, count })
         .collect::<Vec<_>>();
     entries.sort_by(|left, right| {
-        right
-            .count
-            .cmp(&left.count)
-            .then_with(|| left.tag.cmp(&right.tag))
+        group_summary_sort_priority(left.group.as_str())
+            .cmp(&group_summary_sort_priority(right.group.as_str()))
+            .then_with(|| right.count.cmp(&left.count))
+            .then_with(|| left.group.cmp(&right.group))
     });
     entries
+}
+
+fn group_summary_sort_priority(group: &str) -> u8 {
+    match group {
+        "etc" => 1,
+        "stub" => 2,
+        _ => 0,
+    }
 }
 
 pub(crate) fn sort_repo_indices(indices: &mut [usize], repos: &[Repo], sort_mode: SortMode) {

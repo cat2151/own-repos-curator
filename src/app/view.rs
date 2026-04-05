@@ -1,13 +1,13 @@
 use super::{
     helpers::{
         clamp_tag_page, group_bindings_for_page, group_page_count, group_shortcut_for_group,
-        sort_repo_indices, summarize_tag_counts, tag_bindings_for_page, tag_page_count,
+        sort_repo_indices, summarize_group_counts, tag_bindings_for_page, tag_page_count,
         tag_shortcut_for_tag,
     },
     App, FilterModeFocus, FilterModeState, GroupBindingModeState, GroupCatalogEntry,
-    GroupCatalogState, GroupManagerEntry, GroupManagerState, SelectedRepoDescState,
-    SelectedRepoTagDetailEntry, SelectedRepoTagDetailState, TagBindingModeState, TagCatalogEntry,
-    TagCatalogState, TagManagerEntry, TagManagerState, TagSummaryEntry,
+    GroupCatalogState, GroupManagerEntry, GroupManagerState, GroupSummaryEntry,
+    SelectedRepoDescState, SelectedRepoTagDetailEntry, SelectedRepoTagDetailState,
+    TagBindingModeState, TagCatalogEntry, TagCatalogState, TagManagerEntry, TagManagerState,
 };
 use crate::model::Repo;
 
@@ -125,12 +125,12 @@ impl App {
         }
     }
 
-    pub(crate) fn tag_summary_entries(&self) -> Vec<TagSummaryEntry> {
+    pub(crate) fn group_summary_entries(&self) -> Vec<GroupSummaryEntry> {
         let visible_indices = self.visible_repo_indices();
-        summarize_tag_counts(
+        summarize_group_counts(
             visible_indices
                 .iter()
-                .filter_map(|index| self.data.repos.get(*index).map(|repo| repo.tags.as_slice())),
+                .filter_map(|index| self.data.repos.get(*index).map(|repo| repo.group.as_str())),
         )
     }
 

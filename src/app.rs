@@ -25,10 +25,10 @@ use std::{
 pub(crate) use self::state::{
     EditorField, FilterMode, FilterModeFocus, FilterModeState, GroupBinding, GroupBindingMode,
     GroupBindingModeState, GroupCatalogEntry, GroupCatalogState, GroupInput, GroupInputMode,
-    GroupManager, GroupManagerEntry, GroupManagerState, SelectedRepoDescState,
+    GroupManager, GroupManagerEntry, GroupManagerState, GroupSummaryEntry, SelectedRepoDescState,
     SelectedRepoTagDetailEntry, SelectedRepoTagDetailState, TagBinding, TagBindingMode,
     TagBindingModeState, TagCatalogEntry, TagCatalogState, TagInput, TagInputMode, TagManager,
-    TagManagerEntry, TagManagerState, TagSummaryEntry, TextEditor,
+    TagManagerEntry, TagManagerState, TextEditor,
 };
 
 pub(crate) const TAG_KEYS: [char; 26] = [

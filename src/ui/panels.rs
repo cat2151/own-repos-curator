@@ -1,6 +1,6 @@
-use super::{tag_colors, theme};
+use super::{group_colors, tag_colors, theme};
 use crate::app::{
-    SelectedRepoDescState, SelectedRepoTagDetailState, TagCatalogState, TagSummaryEntry,
+    GroupSummaryEntry, SelectedRepoDescState, SelectedRepoTagDetailState, TagCatalogState,
 };
 use ratatui::{
     layout::Rect,
@@ -226,24 +226,24 @@ pub(super) fn render_tag_catalog(
     );
 }
 
-pub(super) fn render_tag_summary(
+pub(super) fn render_group_summary(
     f: &mut ratatui::Frame,
     area: Rect,
-    entries: &[TagSummaryEntry],
-    registered_tags: &[String],
+    entries: &[GroupSummaryEntry],
+    registered_groups: &[String],
     filtered_view: bool,
 ) {
     if entries.is_empty() {
         f.render_widget(
             Paragraph::new(if filtered_view {
-                "表示中repoに一致する tag 集計はありません。"
+                "表示中repoに一致する group 集計はありません。"
             } else {
-                "tag 集計はまだありません。repo に tag を付けるとここに表示されます。"
+                "group 集計はまだありません。repo に group を割り当てるとここに表示されます。"
             })
             .block(theme::panel_block(if filtered_view {
-                " 表示repo tag集計 "
+                " 表示repo group集計 "
             } else {
-                " 全repo tag集計 "
+                " 全repo group集計 "
             }))
             .style(theme::soft())
             .wrap(Wrap { trim: true }),
@@ -258,14 +258,14 @@ pub(super) fn render_tag_summary(
             ListItem::new(Line::from(vec![
                 Span::styled(format!("{:>3}", entry.count), theme::warning()),
                 Span::raw(" "),
-                tag_colors::span_for_tag(registered_tags, entry.tag.as_str()),
+                group_colors::span_for_group(registered_groups, entry.group.as_str()),
             ]))
         })
         .collect::<Vec<_>>();
     let title = if filtered_view {
-        format!(" 表示repo tag集計 unique:{} ", entries.len())
+        format!(" 表示repo group集計 unique:{} ", entries.len())
     } else {
-        format!(" 全repo tag集計 unique:{} ", entries.len())
+        format!(" 全repo group集計 unique:{} ", entries.len())
     };
     f.render_widget(
         List::new(items)
