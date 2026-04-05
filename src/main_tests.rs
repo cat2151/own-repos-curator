@@ -2,6 +2,11 @@ use super::*;
 use clap::Parser;
 
 #[test]
+fn cargo_package_name_matches_repository_name() {
+    assert_eq!(env!("CARGO_PKG_NAME"), "own-repos-curator");
+}
+
+#[test]
 fn parse_subcommand_recognizes_hash() {
     let cli = Cli::try_parse_from(["repocurator", "hash"]).unwrap();
     assert_eq!(cli.command, Some(Subcommand::Hash));
