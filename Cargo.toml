@@ -1,5 +1,5 @@
 [package]
-name = "repocurator"
+name = "own-repos-curator"
 version = "0.1.0"
 edition = "2021"
 
