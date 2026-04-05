@@ -49,39 +49,55 @@ mod tests {
     use crate::app::DescDisplayMode;
     use std::{
         fs,
-        path::PathBuf,
+        path::{Path, PathBuf},
         time::{SystemTime, UNIX_EPOCH},
     };
 
-    fn unique_history_path() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join(".test-local-data")
-            .join(format!("history-{unique}"))
-            .join("history.json")
+    struct TestHistoryPath {
+        path: PathBuf,
+    }
+
+    impl TestHistoryPath {
+        fn new() -> Self {
+            let unique = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            Self {
+                path: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join(".test-local-data")
+                    .join(format!("history-{unique}"))
+                    .join("history.json"),
+            }
+        }
+
+        fn as_path(&self) -> &Path {
+            &self.path
+        }
+    }
+
+    impl Drop for TestHistoryPath {
+        fn drop(&mut self) {
+            let _ = fs::remove_file(&self.path);
+            if let Some(parent) = self.path.parent() {
+                let _ = fs::remove_dir(parent);
+            }
+        }
     }
 
     #[test]
     fn app_history_roundtrip_preserves_desc_display_mode() {
-        let path = unique_history_path();
+        let path = TestHistoryPath::new();
         AppHistory {
             desc_display_mode: DescDisplayMode::LeftShort,
         }
-        .write_to_path(&path)
+        .write_to_path(path.as_path())
         .expect("history should be written");
 
-        let restored = AppHistory::load_or_default_from_path(&path);
-        let raw = fs::read_to_string(&path).expect("history file should exist");
+        let restored = AppHistory::load_or_default_from_path(path.as_path());
+        let raw = fs::read_to_string(path.as_path()).expect("history file should exist");
 
         assert_eq!(restored.desc_display_mode, DescDisplayMode::LeftShort);
         assert!(raw.contains("\"desc_display_mode\": \"left_short\""));
-
-        let _ = fs::remove_file(&path);
-        if let Some(parent) = path.parent() {
-            let _ = fs::remove_dir(parent);
-        }
     }
 }
