@@ -1,4 +1,4 @@
-use super::super::{AppEvent, FilterModeFocus};
+use super::super::{AppEvent, FilterModeFocus, HelpScreen};
 use super::common::{
     app_with_registered_tags, app_with_registered_tags_and_groups, ctrl_key, key, repo, shift_key,
 };
@@ -45,7 +45,7 @@ fn pressing_slash_enters_group_filter_mode() {
     );
     assert_eq!(
         app.bottom_hint(),
-        "a-z:group A-Z:clear Ctrl+T:tag ←→:page Enter:apply Esc:cancel"
+        "a-z:group A-Z:clear Ctrl+T:tag ←→:page Enter:apply Esc:cancel ?:help"
     );
 }
 
@@ -102,7 +102,7 @@ fn ctrl_t_switches_to_tag_filter_mode_and_ctrl_g_returns_to_group_mode() {
     );
     assert_eq!(
         app.bottom_hint(),
-        "a-z:on A-Z:off Ctrl+G:group ←→:page Enter:apply Esc:cancel"
+        "a-z:on A-Z:off Ctrl+G:group ←→:page Enter:apply Esc:cancel ?:help"
     );
 
     app.handle_key(ctrl_key('g'));
@@ -110,6 +110,45 @@ fn ctrl_t_switches_to_tag_filter_mode_and_ctrl_g_returns_to_group_mode() {
     assert_eq!(
         app.filter_mode.as_ref().map(|mode| mode.focus),
         Some(FilterModeFocus::Group)
+    );
+}
+
+#[test]
+fn pressing_question_mark_in_filter_mode_opens_filter_help() {
+    let mut tools_repo = repo("tools-repo", "2026-03-01T00:00:00Z", None);
+    tools_repo.group = "tools".to_string();
+    let mut app = app_with_registered_tags_and_groups(
+        vec![tools_repo],
+        vec!["rust".to_string()],
+        vec!["tools".to_string(), "web".to_string()],
+    );
+
+    app.handle_key(key(KeyCode::Char('/')));
+    app.handle_key(key(KeyCode::Char('?')));
+
+    assert!(app.filter_mode.is_some());
+    assert_eq!(app.help_screen, Some(HelpScreen::Filter));
+}
+
+#[test]
+fn escape_closes_filter_help_before_cancelling_filter_mode() {
+    let mut tools_repo = repo("tools-repo", "2026-03-01T00:00:00Z", None);
+    tools_repo.group = "tools".to_string();
+    let mut app = app_with_registered_tags_and_groups(
+        vec![tools_repo],
+        vec!["rust".to_string()],
+        vec!["tools".to_string(), "web".to_string()],
+    );
+
+    app.handle_key(key(KeyCode::Char('/')));
+    app.handle_key(key(KeyCode::Char('?')));
+    app.handle_key(key(KeyCode::Esc));
+
+    assert_eq!(app.help_screen, None);
+    assert!(app.filter_mode.is_some());
+    assert_eq!(
+        app.status_message,
+        "group絞り込みモード: a-z 選択 / A-Z 解除 / Ctrl+Tでtag / Enter確定 / Esc取消"
     );
 }
 

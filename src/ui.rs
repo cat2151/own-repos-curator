@@ -9,7 +9,9 @@ mod theme;
 
 use self::{
     group_colors::span_for_group,
-    help::{render_group_binding_help, render_main_help, render_tag_binding_help},
+    help::{
+        render_filter_help, render_group_binding_help, render_main_help, render_tag_binding_help,
+    },
     input_overlays::{render_group_input, render_tag_input, render_text_editor},
     layout::{left_pane_width, log_pane_height},
     overlays::{
@@ -221,6 +223,8 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
         render_tag_binding_help(f, area, tag_binding_mode.as_ref());
     } else if matches!(help_screen, Some(HelpScreen::GroupBinding)) {
         render_group_binding_help(f, area, group_binding_mode.as_ref());
+    } else if matches!(help_screen, Some(HelpScreen::Filter)) {
+        render_filter_help(f, area, filter_mode.as_ref());
     } else if matches!(help_screen, Some(HelpScreen::Main)) {
         render_main_help(f, area);
     }

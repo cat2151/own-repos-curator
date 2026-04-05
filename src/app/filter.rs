@@ -1,4 +1,4 @@
-use super::{helpers::describe_key_code, App, FilterMode, FilterModeFocus};
+use super::{helpers::describe_key_code, App, FilterMode, FilterModeFocus, HelpScreen};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::BTreeSet;
 
@@ -6,6 +6,7 @@ impl App {
     pub(crate) fn begin_filter_mode(&mut self) {
         let selected_repo_name = self.selected_repo().map(|repo| repo.name.clone());
         let pending_tags = self.tag_filter.clone();
+        self.help_screen = None;
         self.filter_mode = Some(FilterMode {
             focus: FilterModeFocus::Group,
             original_group: self.group_filter.clone(),
@@ -52,6 +53,10 @@ impl App {
         match key.code {
             KeyCode::Enter => self.confirm_filter_mode(),
             KeyCode::Esc => self.cancel_filter_mode(),
+            KeyCode::Char('?') => {
+                self.help_screen = Some(HelpScreen::Filter);
+                self.push_debug_log("filter help opened");
+            }
             KeyCode::Left => match focus {
                 FilterModeFocus::Group => self.prev_registered_group_page(),
                 FilterModeFocus::Tag => self.prev_registered_tag_page(),

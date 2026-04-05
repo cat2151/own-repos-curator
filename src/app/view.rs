@@ -221,10 +221,11 @@ impl App {
         if let Some(mode) = self.filter_mode.as_ref() {
             return match mode.focus {
                 FilterModeFocus::Group => {
-                    "a-z:group A-Z:clear Ctrl+T:tag ←→:page Enter:apply Esc:cancel".to_string()
+                    "a-z:group A-Z:clear Ctrl+T:tag ←→:page Enter:apply Esc:cancel ?:help"
+                        .to_string()
                 }
                 FilterModeFocus::Tag => {
-                    "a-z:on A-Z:off Ctrl+G:group ←→:page Enter:apply Esc:cancel".to_string()
+                    "a-z:on A-Z:off Ctrl+G:group ←→:page Enter:apply Esc:cancel ?:help".to_string()
                 }
             };
         }

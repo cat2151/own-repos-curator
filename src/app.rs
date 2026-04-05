@@ -48,6 +48,7 @@ pub(crate) enum HelpScreen {
     Main,
     TagBinding,
     GroupBinding,
+    Filter,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
