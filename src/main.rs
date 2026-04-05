@@ -90,6 +90,9 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App)
         }
     }
 
+    if let Err(error) = app.persist_history() {
+        eprintln!("warning: failed to persist history: {error}");
+    }
     Ok(())
 }
 

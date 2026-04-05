@@ -10,7 +10,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub(super) fn repo(name: &str, created_at: &str, updated_at: Option<&str>) -> Repo {
+pub(crate) fn repo(name: &str, created_at: &str, updated_at: Option<&str>) -> Repo {
     Repo {
         name: name.to_string(),
         url: String::new(),
@@ -67,7 +67,7 @@ pub(super) fn app_with_repos(repos: Vec<Repo>) -> App {
     app_with_registered_tags_and_groups(repos, registered_tags, registered_groups)
 }
 
-pub(super) fn app_with_registered_tags(repos: Vec<Repo>, registered_tags: Vec<String>) -> App {
+pub(crate) fn app_with_registered_tags(repos: Vec<Repo>, registered_tags: Vec<String>) -> App {
     let registered_groups = registered_groups_from_repos(&repos);
     app_with_registered_tags_and_groups(repos, registered_tags, registered_groups)
 }
@@ -128,7 +128,7 @@ pub(super) fn ctrl_key(ch: char) -> KeyEvent {
     KeyEvent::new(KeyCode::Char(ch), KeyModifiers::CONTROL)
 }
 
-pub(super) fn shift_key(ch: char) -> KeyEvent {
+pub(crate) fn shift_key(ch: char) -> KeyEvent {
     KeyEvent::new(KeyCode::Char(ch.to_ascii_uppercase()), KeyModifiers::SHIFT)
 }
 
