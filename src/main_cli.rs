@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand as ClapSubcommand};
 
 #[derive(Debug, Parser, PartialEq, Eq)]
-#[command(name = "repocurator")]
+#[command(name = "own-repos-curator")]
 #[command(about = "TUI for curating descriptions of your GitHub repositories")]
 pub(crate) struct Cli {
     #[command(subcommand)]

@@ -24,13 +24,13 @@ cargo install --force --git https://github.com/cat2151/own-repos-curator
 # Execution
 
 ```
-repocurator
+own-repos-curator
 ```
 
 # Update
 
 ```
-repocurator update
+own-repos-curator update
 ```
 
 # Breaking Changes
