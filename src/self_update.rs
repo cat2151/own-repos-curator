@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 pub(crate) const REPO_OWNER: &str = "cat2151";
 pub(crate) const REPO_NAME: &str = "own-repos-curator";
-const BIN_NAMES: &[&str] = &["own-repos-curator"];
+const BIN_NAMES: &[&str] = &["own-repos-curator", "repocurator"];
 
 pub(crate) fn build_commit_hash() -> &'static str {
     env!("BUILD_COMMIT_HASH")

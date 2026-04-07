@@ -27,5 +27,5 @@ fn install_command_targets_repository_url() {
 
 #[test]
 fn update_relaunches_own_repos_curator_binary() {
-    assert_eq!(BIN_NAMES, &["own-repos-curator"]);
+    assert_eq!(BIN_NAMES, &["own-repos-curator", "repocurator"]);
 }
