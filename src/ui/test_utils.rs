@@ -3,7 +3,7 @@ use ratatui::{backend::TestBackend, Terminal};
 pub(crate) fn render_overlay_text(
     width: u16,
     height: u16,
-    render: impl Fn(&mut ratatui::Frame),
+    render: impl FnOnce(&mut ratatui::Frame),
 ) -> String {
     let backend = TestBackend::new(width, height);
     let mut terminal = Terminal::new(backend).expect("terminal");

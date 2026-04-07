@@ -176,7 +176,8 @@ mod tests {
         GroupCatalogState, TagCatalogEntry, TagCatalogState,
     };
     use crate::ui::overlay_binding_modes::render_group_binding_mode;
-    use ratatui::{backend::TestBackend, layout::Rect, Terminal};
+    use crate::ui::test_utils::render_overlay_text;
+    use ratatui::layout::Rect;
 
     fn render_filter_overlay_text(
         width: u16,
@@ -185,30 +186,15 @@ mod tests {
         catalog: &TagCatalogState,
         group_catalog: &GroupCatalogState,
     ) -> String {
-        let backend = TestBackend::new(width, height);
-        let mut terminal = Terminal::new(backend).expect("terminal");
-        terminal
-            .draw(|f| {
-                render_filter_mode(
-                    f,
-                    Rect::new(0, 0, width, height),
-                    state,
-                    catalog,
-                    group_catalog,
-                );
-            })
-            .expect("draw");
-
-        let buffer = terminal.backend().buffer();
-        (0..height)
-            .map(|y| {
-                (0..width)
-                    .map(|x| buffer[(x, y)].symbol().to_string())
-                    .collect::<Vec<_>>()
-                    .join("")
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
+        render_overlay_text(width, height, |f| {
+            render_filter_mode(
+                f,
+                Rect::new(0, 0, width, height),
+                state,
+                catalog,
+                group_catalog,
+            );
+        })
     }
 
     fn render_group_binding_overlay_text(
@@ -217,24 +203,9 @@ mod tests {
         state: &GroupBindingModeState,
         catalog: &GroupCatalogState,
     ) -> String {
-        let backend = TestBackend::new(width, height);
-        let mut terminal = Terminal::new(backend).expect("terminal");
-        terminal
-            .draw(|f| {
-                render_group_binding_mode(f, Rect::new(0, 0, width, height), state, catalog);
-            })
-            .expect("draw");
-
-        let buffer = terminal.backend().buffer();
-        (0..height)
-            .map(|y| {
-                (0..width)
-                    .map(|x| buffer[(x, y)].symbol().to_string())
-                    .collect::<Vec<_>>()
-                    .join("")
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
+        render_overlay_text(width, height, |f| {
+            render_group_binding_mode(f, Rect::new(0, 0, width, height), state, catalog);
+        })
     }
 
     #[test]
