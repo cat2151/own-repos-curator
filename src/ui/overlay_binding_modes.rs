@@ -146,3 +146,50 @@ pub(super) fn render_group_binding_mode(
         inner,
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::render_tag_binding_mode;
+    use crate::app::TagBindingModeState;
+    use ratatui::{backend::TestBackend, layout::Rect, Terminal};
+
+    fn render_overlay_text(
+        width: u16,
+        height: u16,
+        render: impl Fn(&mut ratatui::Frame),
+    ) -> String {
+        let backend = TestBackend::new(width, height);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        terminal.draw(render).expect("draw");
+
+        let buffer = terminal.backend().buffer();
+        (0..height)
+            .map(|y| {
+                (0..width)
+                    .map(|x| buffer[(x, y)].symbol().to_string())
+                    .collect::<Vec<_>>()
+                    .join("")
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn tag_binding_overlay_renders_pending_changes() {
+        let state = TagBindingModeState {
+            repo_name: "selected".to_string(),
+            pending_count: 2,
+            added_tags: vec!["rust".to_string()],
+            removed_tags: vec!["go".to_string()],
+        };
+
+        let rendered = render_overlay_text(80, 24, |f| {
+            render_tag_binding_mode(f, Rect::new(0, 0, 80, 24), &state);
+        });
+
+        assert!(rendered.contains("Tag Bind Mode"));
+        assert!(rendered.contains("selected"));
+        assert!(rendered.contains("rust"));
+        assert!(rendered.contains("go"));
+    }
+}
