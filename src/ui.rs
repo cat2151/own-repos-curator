@@ -2,10 +2,14 @@ mod group_colors;
 mod help;
 mod input_overlays;
 mod layout;
+mod overlay_binding_modes;
+mod overlay_managers;
 mod overlays;
 mod panels;
 mod right_pane;
 mod tag_colors;
+#[cfg(test)]
+mod test_utils;
 mod theme;
 
 use self::{
@@ -15,10 +19,9 @@ use self::{
     },
     input_overlays::{render_group_input, render_tag_input, render_text_editor},
     layout::{left_pane_width, log_pane_height},
-    overlays::{
-        render_filter_mode, render_group_binding_mode, render_group_manager,
-        render_tag_binding_mode, render_tag_manager,
-    },
+    overlay_binding_modes::{render_group_binding_mode, render_tag_binding_mode},
+    overlay_managers::{render_group_manager, render_tag_manager},
+    overlays::render_filter_mode,
     panels::{
         render_group_summary, render_log_pane, render_selected_repo_desc,
         render_selected_repo_tag_detail, render_tag_catalog,
