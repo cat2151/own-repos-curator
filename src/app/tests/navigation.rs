@@ -38,6 +38,42 @@ fn move_up_stops_at_first_repo() {
 }
 
 #[test]
+fn page_down_moves_selection_by_page_step_and_stops_at_last_repo() {
+    let repos = (0..15)
+        .map(|index| repo(&format!("repo-{index}"), "2026-03-01T00:00:00Z", None))
+        .collect();
+    let mut app = app_with_repos(repos);
+
+    app.handle_key(key(KeyCode::PageDown));
+    assert_eq!(app.selected_index(), Some(10));
+
+    app.handle_key(key(KeyCode::PageDown));
+    assert_eq!(app.selected_index(), Some(14));
+
+    cleanup_app_file(&app);
+}
+
+#[test]
+fn page_up_moves_selection_by_page_step_and_stops_at_first_repo() {
+    let repos = (0..15)
+        .map(|index| repo(&format!("repo-{index}"), "2026-03-01T00:00:00Z", None))
+        .collect();
+    let mut app = app_with_repos(repos);
+
+    app.handle_key(key(KeyCode::PageDown));
+    app.handle_key(key(KeyCode::PageDown));
+    assert_eq!(app.selected_index(), Some(14));
+
+    app.handle_key(key(KeyCode::PageUp));
+    assert_eq!(app.selected_index(), Some(4));
+
+    app.handle_key(key(KeyCode::PageUp));
+    assert_eq!(app.selected_index(), Some(0));
+
+    cleanup_app_file(&app);
+}
+
+#[test]
 fn tag_manager_move_down_stops_at_last_tag() {
     let mut app = app_with_registered_tags(
         vec![repo("solo", "2026-03-01T00:00:00Z", None)],
