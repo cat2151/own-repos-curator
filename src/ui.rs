@@ -8,6 +8,8 @@ mod overlays;
 mod panels;
 mod right_pane;
 mod tag_colors;
+#[cfg(test)]
+mod test_utils;
 mod theme;
 
 use self::{

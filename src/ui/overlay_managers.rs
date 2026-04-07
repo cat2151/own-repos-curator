@@ -140,28 +140,8 @@ pub(super) fn render_group_manager(f: &mut ratatui::Frame, area: Rect, state: &G
 mod tests {
     use super::{render_group_manager, render_tag_manager};
     use crate::app::{GroupManagerState, TagManagerEntry, TagManagerState};
-    use ratatui::{backend::TestBackend, layout::Rect, Terminal};
-
-    fn render_overlay_text(
-        width: u16,
-        height: u16,
-        render: impl Fn(&mut ratatui::Frame),
-    ) -> String {
-        let backend = TestBackend::new(width, height);
-        let mut terminal = Terminal::new(backend).expect("terminal");
-        terminal.draw(render).expect("draw");
-
-        let buffer = terminal.backend().buffer();
-        (0..height)
-            .map(|y| {
-                (0..width)
-                    .map(|x| buffer[(x, y)].symbol().to_string())
-                    .collect::<Vec<_>>()
-                    .join("")
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
+    use crate::ui::test_utils::render_overlay_text;
+    use ratatui::layout::Rect;
 
     #[test]
     fn tag_manager_overlay_renders_entries_and_count() {
