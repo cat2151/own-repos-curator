@@ -1,4 +1,4 @@
-use super::super::{helpers::sort_repo_indices, SortMode};
+use super::super::{helpers::sort_repo_indices, SortMode, REPO_PAGE_STEP};
 use super::common::{app_with_registered_tags, app_with_repos, cleanup_app_file, key, repo};
 use crossterm::event::KeyCode;
 
@@ -32,6 +32,47 @@ fn move_up_stops_at_first_repo() {
     assert_eq!(app.selected_index(), Some(0));
 
     app.handle_key(key(KeyCode::Char('k')));
+    assert_eq!(app.selected_index(), Some(0));
+
+    cleanup_app_file(&app);
+}
+
+#[test]
+fn page_down_moves_selection_by_page_step_and_stops_at_last_repo() {
+    let repos = (0..15)
+        .map(|index| repo(&format!("repo-{index}"), "2026-03-01T00:00:00Z", None))
+        .collect::<Vec<_>>();
+    let last_index = repos.len() - 1;
+    let mut app = app_with_repos(repos);
+
+    app.handle_key(key(KeyCode::PageDown));
+    assert_eq!(app.selected_index(), Some(REPO_PAGE_STEP));
+
+    app.handle_key(key(KeyCode::PageDown));
+    assert_eq!(app.selected_index(), Some(last_index));
+
+    cleanup_app_file(&app);
+}
+
+#[test]
+fn page_up_moves_selection_by_page_step_and_stops_at_first_repo() {
+    let repos = (0..15)
+        .map(|index| repo(&format!("repo-{index}"), "2026-03-01T00:00:00Z", None))
+        .collect::<Vec<_>>();
+    let last_index = repos.len() - 1;
+    let mut app = app_with_repos(repos);
+
+    app.handle_key(key(KeyCode::PageDown));
+    app.handle_key(key(KeyCode::PageDown));
+    assert_eq!(app.selected_index(), Some(last_index));
+
+    app.handle_key(key(KeyCode::PageUp));
+    assert_eq!(
+        app.selected_index(),
+        Some(last_index.saturating_sub(REPO_PAGE_STEP))
+    );
+
+    app.handle_key(key(KeyCode::PageUp));
     assert_eq!(app.selected_index(), Some(0));
 
     cleanup_app_file(&app);

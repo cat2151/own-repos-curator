@@ -108,6 +108,7 @@ fn main_help_lines() -> Vec<Line<'static>> {
         Line::from(" s      : sort create/modify 切替"),
         Line::from(" j / k  : repo選択を移動"),
         Line::from(" ↑ / ↓  : repo選択を移動"),
+        Line::from(" PgUp/Dn: repo選択を10件ずつ移動"),
         Line::from(" ?      : ヘルプ表示/非表示"),
         Line::from(" Esc    : パネルまたはヘルプを閉じる"),
         Line::from(" q      : 終了"),

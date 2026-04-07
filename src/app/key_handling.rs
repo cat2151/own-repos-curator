@@ -233,6 +233,14 @@ impl App {
                 self.move_up();
                 AppEvent::Continue
             }
+            KeyCode::PageUp => {
+                self.move_page_up();
+                AppEvent::Continue
+            }
+            KeyCode::PageDown => {
+                self.move_page_down();
+                AppEvent::Continue
+            }
             KeyCode::Left => {
                 self.prev_registered_tag_page();
                 AppEvent::Continue

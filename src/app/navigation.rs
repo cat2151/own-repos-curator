@@ -1,6 +1,6 @@
 use super::{
     helpers::{clamp_tag_page, group_page_count, tag_page_count},
-    App,
+    App, REPO_PAGE_STEP,
 };
 
 impl App {
@@ -82,6 +82,34 @@ impl App {
 
         let i = match self.selected_index() {
             Some(i) => i.saturating_add(1).min(visible_len.saturating_sub(1)),
+            None => 0,
+        };
+        self.list_state.select(Some(i));
+    }
+
+    pub(crate) fn move_page_up(&mut self) {
+        let visible_len = self.visible_repo_count();
+        if visible_len == 0 {
+            return;
+        }
+
+        let i = match self.selected_index() {
+            Some(i) => i.saturating_sub(REPO_PAGE_STEP),
+            None => 0,
+        };
+        self.list_state.select(Some(i));
+    }
+
+    pub(crate) fn move_page_down(&mut self) {
+        let visible_len = self.visible_repo_count();
+        if visible_len == 0 {
+            return;
+        }
+
+        let i = match self.selected_index() {
+            Some(i) => i
+                .saturating_add(REPO_PAGE_STEP)
+                .min(visible_len.saturating_sub(1)),
             None => 0,
         };
         self.list_state.select(Some(i));
