@@ -1,4 +1,4 @@
-use crate::paths::config_file_path;
+use crate::paths::{config_file_path, migrate_legacy_roaming_config_files_to_local};
 use anyhow::{anyhow, Context, Result};
 use std::{fs, path::Path};
 
@@ -27,6 +27,7 @@ pub struct GitHubRepoRef(String);
 
 impl AppConfig {
     pub fn load_or_init() -> Result<Self> {
+        migrate_legacy_roaming_config_files_to_local()?;
         let path = config_file_path()?;
         Self::load_or_init_from_path(&path)
     }

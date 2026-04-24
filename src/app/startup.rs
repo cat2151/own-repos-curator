@@ -11,6 +11,7 @@ use std::{
 };
 
 pub(super) fn load_app() -> Result<App> {
+    crate::paths::migrate_legacy_roaming_config_files_to_local()?;
     let (data, data_path) = RepoData::load_or_init()?;
     let history_path = crate::paths::history_file_path()?;
     let (history, history_load_error) = match AppHistory::load_from_path(&history_path) {
