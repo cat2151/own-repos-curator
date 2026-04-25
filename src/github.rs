@@ -1,8 +1,13 @@
-use crate::model::{Repo, RepoData, DEFAULT_GROUP_NAME};
+use crate::{
+    model::{Repo, RepoData, DEFAULT_GROUP_NAME},
+    process::output_with_timeout,
+};
 use anyhow::{anyhow, Context, Result};
 use chrono::Utc;
 use serde::Deserialize;
-use std::process::Command;
+use std::{process::Command, time::Duration};
+
+const GH_COMMAND_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, Copy)]
 pub struct SyncSummary {
@@ -18,13 +23,12 @@ pub struct FetchedRepo {
     pub(crate) github_desc: String,
 }
 
-pub fn sync_repo_data(data: &mut RepoData) -> Result<SyncSummary> {
-    let fetched = fetch_remote_repos()?;
-    Ok(apply_fetched_repos(data, fetched))
-}
-
-pub fn fetch_remote_repos() -> Result<Vec<FetchedRepo>> {
+pub fn fetch_remote_repos_with_progress(
+    mut progress: impl FnMut(&str),
+) -> Result<Vec<FetchedRepo>> {
+    progress("GitHub CLIのログインユーザーを確認中 (`gh api user`)");
     let owner = current_login()?;
+    progress(&format!("public repo一覧を取得中 (`gh repo list {owner}`)"));
     fetch_repos(&owner)
 }
 
@@ -75,10 +79,9 @@ pub fn apply_fetched_repos(data: &mut RepoData, fetched: Vec<FetchedRepo>) -> Sy
 }
 
 fn current_login() -> Result<String> {
-    let output = Command::new("gh")
-        .args(["api", "user", "--jq", ".login"])
-        .output()
-        .context("failed to run gh api user")?;
+    let mut command = Command::new("gh");
+    command.args(["api", "user", "--jq", ".login"]);
+    let output = output_with_timeout(&mut command, GH_COMMAND_TIMEOUT, "gh api user")?;
 
     if !output.status.success() {
         return Err(anyhow!(
@@ -109,22 +112,25 @@ struct GithubRepo {
 }
 
 fn fetch_repos(owner: &str) -> Result<Vec<FetchedRepo>> {
-    let output = Command::new("gh")
-        .args([
-            "repo",
-            "list",
-            owner,
-            "--source",
-            "--visibility",
-            "public",
-            "--no-archived",
-            "--limit",
-            "1000",
-            "--json",
-            "name,createdAt,updatedAt,description",
-        ])
-        .output()
-        .with_context(|| format!("failed to run gh repo list for {owner}"))?;
+    let mut command = Command::new("gh");
+    command.args([
+        "repo",
+        "list",
+        owner,
+        "--source",
+        "--visibility",
+        "public",
+        "--no-archived",
+        "--limit",
+        "1000",
+        "--json",
+        "name,createdAt,updatedAt,description",
+    ]);
+    let output = output_with_timeout(
+        &mut command,
+        GH_COMMAND_TIMEOUT,
+        &format!("gh repo list for {owner}"),
+    )?;
 
     if !output.status.success() {
         return Err(anyhow!(

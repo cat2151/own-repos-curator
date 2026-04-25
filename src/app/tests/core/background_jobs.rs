@@ -1,4 +1,5 @@
 use super::*;
+use std::time::Duration;
 
 #[test]
 fn tick_applies_background_startup_sync_without_overwriting_local_metadata() {
@@ -59,6 +60,53 @@ fn tick_applies_background_auto_push_result_to_meta() {
 
     assert_eq!(app.data.meta.last_json_commit_push_date, "2026-04-05");
     assert_eq!(app.status_message, "JSON自動push: 変更なし");
+
+    cleanup_app_file(&app);
+}
+
+#[test]
+fn sync_progress_overlay_is_hidden_before_one_second() {
+    let mut app = app_with_repos(vec![repo("solo", "2026-03-01T00:00:00Z", None)]);
+    app.startup_jobs = StartupJobs::with_test_running_github_sync_elapsed(
+        Duration::from_millis(999),
+        "public repo一覧を取得中",
+    );
+
+    assert_eq!(app.sync_progress_state(), None);
+
+    cleanup_app_file(&app);
+}
+
+#[test]
+fn sync_progress_overlay_shows_elapsed_phase_after_one_second() {
+    let mut app = app_with_repos(vec![repo("solo", "2026-03-01T00:00:00Z", None)]);
+    app.startup_jobs = StartupJobs::with_test_running_github_sync_elapsed(
+        Duration::from_secs(3),
+        "public repo一覧を取得中",
+    );
+
+    let progress = app.sync_progress_state().expect("progress should render");
+
+    assert_eq!(progress.title, "起動時GitHub同期");
+    assert_eq!(progress.phase, "public repo一覧を取得中");
+    assert!(progress.elapsed_secs >= 3);
+
+    cleanup_app_file(&app);
+}
+
+#[test]
+fn json_push_progress_overlay_shows_current_phase() {
+    let mut app = app_with_repos(vec![repo("solo", "2026-03-01T00:00:00Z", None)]);
+    app.startup_jobs = StartupJobs::with_test_running_manual_json_push_elapsed(
+        Duration::from_secs(5),
+        "snapshot更新commitをpush中",
+    );
+
+    let progress = app.sync_progress_state().expect("progress should render");
+
+    assert_eq!(progress.title, "JSON手動push");
+    assert_eq!(progress.phase, "snapshot更新commitをpush中");
+    assert!(progress.elapsed_secs >= 5);
 
     cleanup_app_file(&app);
 }

@@ -1,3 +1,4 @@
 - 500行overのソースは、単一責任の原則に従いファイル分割すること
 - プルリクエストは日本語で書くこと
 - cargoのformatとlinterを使うこと
+- README.md編集禁止（README.ja.mdから生成されるので）

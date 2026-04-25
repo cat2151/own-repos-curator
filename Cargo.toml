@@ -19,4 +19,4 @@ anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
 tui-textarea = "0.6.1"
 clap = { version = "4", features = ["derive"] }
-cat-self-update-lib = { git = "https://github.com/cat2151/cat-self-update", package = "cat-self-update-lib" }
+cat-self-update-lib = { git = "https://github.com/cat2151/cat-self-update", branch = "main", package = "cat-self-update-lib" }

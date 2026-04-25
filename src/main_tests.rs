@@ -19,6 +19,12 @@ fn parse_subcommand_recognizes_update() {
 }
 
 #[test]
+fn parse_subcommand_recognizes_check() {
+    let cli = Cli::try_parse_from(["own-repos-curator", "check"]).unwrap();
+    assert_eq!(cli.command, Some(Subcommand::Check));
+}
+
+#[test]
 fn parse_subcommand_is_optional() {
     let cli = Cli::try_parse_from(["own-repos-curator"]).unwrap();
     assert_eq!(cli.command, None);

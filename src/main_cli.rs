@@ -14,4 +14,6 @@ pub(crate) enum Subcommand {
     Hash,
     /// Self-update the application from GitHub
     Update,
+    /// Compare the build-time commit hash with the remote main branch
+    Check,
 }

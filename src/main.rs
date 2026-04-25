@@ -7,6 +7,7 @@ mod local_json_sync;
 mod main_cli;
 mod model;
 mod paths;
+mod process;
 mod repo_url_cache;
 mod self_update;
 mod ui;
@@ -27,7 +28,7 @@ use ratatui::{
     widgets::{Block, Paragraph},
     Terminal,
 };
-use self_update::{build_commit_hash, run_self_update};
+use self_update::{build_commit_hash, check_self_update, run_self_update};
 use std::{io, time::Duration};
 
 #[cfg(test)]
@@ -46,6 +47,10 @@ fn main() -> Result<()> {
             if should_exit {
                 std::process::exit(0);
             }
+            return Ok(());
+        }
+        Some(Subcommand::Check) => {
+            println!("{}", check_self_update()?);
             return Ok(());
         }
         None => {}

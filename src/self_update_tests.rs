@@ -11,6 +11,11 @@ fn owner_repo_uses_expected_slug() {
 }
 
 #[test]
+fn main_branch_uses_main() {
+    assert_eq!(MAIN_BRANCH, "main");
+}
+
+#[test]
 fn install_command_contains_install_git_url() {
     let cmd = install_cmd();
     assert!(cmd.contains("cargo install --force --git"));
@@ -26,6 +31,6 @@ fn install_command_targets_repository_url() {
 }
 
 #[test]
-fn update_relaunches_own_repos_curator_binary() {
-    assert_eq!(BIN_NAMES, &["own-repos-curator", "repocurator"]);
+fn update_uses_default_cargo_install_crate_selection() {
+    assert_eq!(INSTALL_CRATES, &[] as &[&str]);
 }

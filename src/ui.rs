@@ -7,6 +7,7 @@ mod overlay_managers;
 mod overlays;
 mod panels;
 mod right_pane;
+mod sync_progress;
 mod tag_colors;
 #[cfg(test)]
 mod test_utils;
@@ -27,6 +28,7 @@ use self::{
         render_selected_repo_tag_detail, render_tag_catalog,
     },
     right_pane::{layout_right_pane, RightPaneContent},
+    sync_progress::render_sync_progress,
     tag_colors::span_for_tag,
 };
 use crate::app::{App, DescDisplayMode, HelpScreen};
@@ -52,6 +54,7 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
     f.render_widget(Block::default().style(theme::screen()), area);
 
     let help_screen = app.help_screen();
+    let sync_progress = app.sync_progress_state();
     let tag_binding_mode = app.tag_binding_mode_state();
     let group_binding_mode = app.group_binding_mode_state();
     let filter_mode = app.filter_mode_state();
@@ -253,6 +256,10 @@ pub(crate) fn render(f: &mut ratatui::Frame, app: &mut App) {
         render_filter_help(f, area, filter_mode.as_ref());
     } else if matches!(help_screen, Some(HelpScreen::Main)) {
         render_main_help(f, area);
+    }
+
+    if let Some(sync_progress) = sync_progress.as_ref() {
+        render_sync_progress(f, area, sync_progress);
     }
 }
 

@@ -1,26 +1,11 @@
 use super::{App, AppHistory, DEBUG_LOG_LIMIT};
-use crate::{github::sync_repo_data, paths::history_file_path};
+use crate::paths::history_file_path;
 use anyhow::Result;
 use std::path::Path;
 
 impl App {
     pub(crate) fn refresh_from_github(&mut self) {
-        let selected_repo_name = self.selected_repo().map(|repo| repo.name.clone());
-        match sync_repo_data(&mut self.data).and_then(|summary| {
-            self.data.write_to_path(&self.data_path)?;
-            Ok(summary)
-        }) {
-            Ok(summary) => {
-                self.restore_selection(selected_repo_name.as_deref());
-                self.status_message = format!(
-                    "GitHub同期完了: {}件追加 / {}件更新",
-                    summary.added, summary.updated
-                );
-            }
-            Err(error) => {
-                self.status_message = format!("GitHub同期失敗: {error}");
-            }
-        }
+        self.start_manual_github_sync();
     }
 
     pub(crate) fn persist_data(&self) -> Result<()> {

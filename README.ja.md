@@ -33,6 +33,12 @@ own-repos-curator
 own-repos-curator update
 ```
 
+# 更新確認
+
+```
+own-repos-curator check
+```
+
 # 破壊的変更
 - 頻繁に行います
 

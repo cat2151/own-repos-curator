@@ -38,30 +38,35 @@ pub enum AutoPushOutcome {
     },
 }
 
-pub fn maybe_push_json_snapshot(
+pub fn maybe_push_json_snapshot_with_progress(
     data: &mut RepoData,
     config: &AppConfig,
+    mut progress: impl FnMut(&str),
 ) -> Result<AutoPushOutcome> {
-    push_json_snapshot(data, config, JsonPushTrigger::Automatic)
+    push_json_snapshot(data, config, JsonPushTrigger::Automatic, &mut progress)
 }
 
-pub fn push_json_snapshot_manually(
+pub fn push_json_snapshot_manually_with_progress(
     data: &mut RepoData,
     config: &AppConfig,
+    mut progress: impl FnMut(&str),
 ) -> Result<AutoPushOutcome> {
-    push_json_snapshot(data, config, JsonPushTrigger::Manual)
+    push_json_snapshot(data, config, JsonPushTrigger::Manual, &mut progress)
 }
 
 fn push_json_snapshot(
     data: &mut RepoData,
     config: &AppConfig,
     trigger: JsonPushTrigger,
+    progress: &mut dyn FnMut(&str),
 ) -> Result<AutoPushOutcome> {
+    progress("JSON push設定を確認中");
     let Some(repo) = config.json_auto_push.repo.as_ref() else {
         return Ok(AutoPushOutcome::Disabled);
     };
 
     let today = Utc::now().date_naive().to_string();
+    progress("本日のJSON push実行状態を確認中");
     if should_skip_today(&data.meta.last_json_commit_push_date, &today, trigger) {
         return Ok(AutoPushOutcome::SkippedToday { date: today });
     }
@@ -69,7 +74,7 @@ fn push_json_snapshot(
     let mut snapshot = data.clone();
     snapshot.meta.last_json_commit_push_date = today.clone();
 
-    let outcome = push_snapshot(&snapshot, repo, &today)?;
+    let outcome = push_snapshot(&snapshot, repo, &today, progress)?;
     data.meta.last_json_commit_push_date = today;
     Ok(outcome)
 }
@@ -82,14 +87,22 @@ fn push_snapshot(
     snapshot: &RepoData,
     repo: &GitHubRepoRef,
     today: &str,
+    progress: &mut dyn FnMut(&str),
 ) -> Result<AutoPushOutcome> {
+    progress("GitHub CLIの認証状態を確認中 (`gh auth status`)");
     ensure_gh_auth()?;
-    let repo_dir = ensure_managed_clone(repo)?;
+    progress("管理repo cloneを確認中");
+    let repo_dir = ensure_managed_clone(repo, progress)?;
+    progress("管理repoのworktreeを確認中");
     ensure_clean_worktree(&repo_dir)?;
+    progress("管理repoをfast-forward更新中 (`git pull --ff-only`)");
     git(&repo_dir, ["pull", "--ff-only"])?;
+    progress("pull後のworktreeを確認中");
     ensure_clean_worktree(&repo_dir)?;
 
+    progress("repos.json snapshotを書き込み中");
     let snapshot_path = write_snapshot(&repo_dir, snapshot)?;
+    progress("repos.json snapshotの差分を確認中");
     if !path_has_changes(&repo_dir, &snapshot_path)? {
         return Ok(AutoPushOutcome::UpToDate {
             repo: repo.as_str().to_string(),
@@ -101,13 +114,19 @@ fn push_snapshot(
         .file_name()
         .and_then(OsStr::to_str)
         .ok_or_else(|| anyhow!("failed to resolve snapshot file name"))?;
+    progress("repos.json snapshotをstage中 (`git add`)");
     git(&repo_dir, ["add", "--", snapshot_file])?;
+    progress("stage済みファイルを検証中");
     ensure_only_snapshot_is_staged(&repo_dir, snapshot_file)?;
 
     let message = format!("chore: update {SNAPSHOT_FILE_NAME} ({today})");
+    progress("Hatena同期プロセスを起動中");
     spawn_hatena_sync()?;
+    progress("snapshot更新commitを作成中 (`git commit`)");
     git(&repo_dir, ["commit", "-m", &message])?;
+    progress("snapshot更新commitをpush中 (`git push`)");
     git(&repo_dir, ["push"])?;
+    progress("push済みcommit idを確認中");
     let commit_id = git_stdout(&repo_dir, ["rev-parse", "HEAD"])?;
 
     Ok(AutoPushOutcome::Pushed {
@@ -126,7 +145,7 @@ fn ensure_gh_auth() -> Result<()> {
     Ok(())
 }
 
-fn ensure_managed_clone(repo: &GitHubRepoRef) -> Result<PathBuf> {
+fn ensure_managed_clone(repo: &GitHubRepoRef, progress: &mut dyn FnMut(&str)) -> Result<PathBuf> {
     let base_dir = managed_repo_dir_path()?;
     fs::create_dir_all(&base_dir).with_context(|| {
         format!(
@@ -137,6 +156,10 @@ fn ensure_managed_clone(repo: &GitHubRepoRef) -> Result<PathBuf> {
 
     let repo_dir = base_dir.join(repo.directory_name());
     if !repo_dir.exists() {
+        progress(&format!(
+            "管理repoをclone中 (`gh repo clone {}`)",
+            repo.as_str()
+        ));
         let clone_target = repo_dir.to_string_lossy().to_string();
         let output = Command::new("gh")
             .args(["repo", "clone", repo.as_str(), &clone_target])
@@ -152,6 +175,7 @@ fn ensure_managed_clone(repo: &GitHubRepoRef) -> Result<PathBuf> {
         ));
     }
 
+    progress("管理repoのoriginを確認中");
     ensure_remote_origin_matches(&repo_dir, repo)?;
     Ok(repo_dir)
 }
@@ -303,8 +327,8 @@ mod tests {
             },
         };
 
-        let outcome =
-            super::maybe_push_json_snapshot(&mut data, &config).expect("push should skip");
+        let outcome = super::maybe_push_json_snapshot_with_progress(&mut data, &config, |_| {})
+            .expect("push should skip");
 
         assert_eq!(outcome, AutoPushOutcome::SkippedToday { date: today });
     }

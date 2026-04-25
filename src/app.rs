@@ -1,4 +1,6 @@
 mod background;
+mod background_app;
+mod background_progress;
 mod editor;
 mod filter;
 mod groups;
@@ -24,6 +26,7 @@ use std::{
     path::PathBuf,
 };
 
+pub(crate) use self::background_progress::SyncProgressState;
 pub(crate) use self::state::{
     EditorField, FilterMode, FilterModeFocus, FilterModeState, GroupBinding, GroupBindingMode,
     GroupBindingModeState, GroupCatalogEntry, GroupCatalogState, GroupInput, GroupInputMode,
